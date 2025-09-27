@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Alerta de Medios - EDESUR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-top">
+      <div class="logo-section">
+        <div class="edesur-logo">
+          <div class="logo-text">
+            <span class="logo-ede">ede</span><span class="logo-sur">sur</span><span class="logo-reg">®</span>
+          </div>
+          <div class="logo-swoosh"></div>
+          <div class="logo-subtitle">Edesur Dominicana, S. A.</div>
+        </div>
+        <h1>Sistema de Alerta de Medios</h1>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnActualizar">🔄 Actualizar</button>
+        <button class="btn" id="btnCargarMas">⬇️ Cargar más</button>
+        <button class="btn" id="btnExportar">📤 Exportar</button>
+        <button class="btn" id="btnDrive">☁️ Drive</button>
+      </div>
+    </div>
+    
+    <div class="alert-banner">
+      <span class="alert-text">COINCIDENCIA DETECTADA</span>
+    </div>
+    
+    <div class="header-main">
+      <h2>Sistema de Alerta de Medios</h2>
+      <p class="subtitle">Monitoreo inteligente de contenido en tiempo real</p>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span>Sistema activo y monitoreando</span>
+      </div>
+      
+      <div class="filter-tags">
+        <span class="filter-tag" data-filter="edesur">Edesur</span>
+        <span class="filter-tag" data-filter="apagones">Apagones</span>
+        <span class="filter-tag" data-filter="apagon">Apagón</span>
+        <span class="filter-tag" data-filter="punta-catalina">Punta Catalina</span>
+        <span class="filter-tag" data-filter="jose-actis">José Actis</span>
+        <span class="filter-tag" data-filter="edenorte">Edenorte</span>
+        <span class="filter-tag" data-filter="pacto-electrico">Pacto Eléctrico</span>
+        <span class="filter-tag" data-filter="marranzini">Marranzini</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- FEED: aquí se renderizan todas las tarjetas, una debajo de otra -->
+    <section id="feed" class="feed"></section>
+  </main>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    window.SUPABASE_URL = "https://sfvbcprhfmwglqpyyfxz.supabase.co";
+    window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdmJjcHJoZm13Z2xxcHl5Znh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5MTA0MTMsImV4cCI6MjA3MjQ4NjQxM30.PDxciEIhBhHJUGw2iXkEkiECfrVZ32sYl9FiTKsageU";
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
