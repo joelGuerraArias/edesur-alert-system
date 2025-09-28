@@ -6,6 +6,7 @@ const feedEl = document.getElementById('feed');
 const toastEl = document.getElementById('toast');
 const btnActualizar = document.getElementById('btnActualizar');
 const btnCargarMas = document.getElementById('btnCargarMas');
+const btnForzarRecarga = document.getElementById('btnForzarRecarga');
 const btnExportar = document.getElementById('btnExportar');
 const btnDrive = document.getElementById('btnDrive');
 
@@ -14,6 +15,7 @@ console.log('🔍 Verificando elementos del DOM:');
 console.log('feedEl:', feedEl);
 console.log('btnActualizar:', btnActualizar);
 console.log('btnCargarMas:', btnCargarMas);
+console.log('btnForzarRecarga:', btnForzarRecarga);
 console.log('btnExportar:', btnExportar);
 console.log('btnDrive:', btnDrive);
 
@@ -852,8 +854,28 @@ function updateSortButtonText() {
   }
 }
 
+// ====== Forzar recarga de caché ======
+console.log('🚀 Aplicación cargada - Versión 2.0');
+console.log('📅 Fecha de carga:', new Date().toLocaleString());
+
+// Verificar que todos los archivos se cargaron correctamente
+const checkFilesLoaded = () => {
+  const stylesLoaded = document.querySelector('link[href*="styles.css"]') !== null;
+  const scriptLoaded = document.querySelector('script[src*="script.js"]') !== null;
+  
+  console.log('📁 Archivos cargados:');
+  console.log('  - CSS:', stylesLoaded ? '✅' : '❌');
+  console.log('  - JS:', scriptLoaded ? '✅' : '❌');
+  
+  if (!stylesLoaded || !scriptLoaded) {
+    console.warn('⚠️ Algunos archivos no se cargaron correctamente');
+    showToast('⚠️ Error de carga - Recarga la página', 'error');
+  }
+};
+
 // ====== Listeners ======
 document.addEventListener('DOMContentLoaded', () => {
+  checkFilesLoaded();
   // Verificar que los elementos existan antes de agregar listeners
   if (btnActualizar) {
     btnActualizar.addEventListener('click', loadFirstPage);
@@ -867,6 +889,17 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ Listener agregado a btnCargarMas');
   } else {
     console.error('❌ btnCargarMas no encontrado');
+  }
+  
+  if (btnForzarRecarga) {
+    btnForzarRecarga.addEventListener('click', () => {
+      showToast('🔄 Forzando recarga completa...');
+      // Forzar recarga sin caché
+      window.location.reload(true);
+    });
+    console.log('✅ Listener agregado a btnForzarRecarga');
+  } else {
+    console.error('❌ btnForzarRecarga no encontrado');
   }
   
   // Botones adicionales (funcionalidad futura)
