@@ -842,6 +842,16 @@ function reorganizeCards() {
   console.log('🔄 Tarjetas reorganizadas con ordenamiento:', sortOrder);
 }
 
+// Función para actualizar el texto del botón alternativo
+function updateSortButtonText() {
+  const sortButton = document.getElementById('sortButton');
+  const sortText = sortButton?.querySelector('.sort-text');
+  
+  if (sortText) {
+    sortText.textContent = sortOrder === 'desc' ? 'Más recientes' : 'Más antiguos';
+  }
+}
+
 // ====== Listeners ======
 document.addEventListener('DOMContentLoaded', () => {
   // Verificar que los elementos existan antes de agregar listeners
@@ -893,13 +903,45 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Agregar listener al switch de ordenamiento
   const sortToggle = document.getElementById('sortToggle');
+  const sortButton = document.getElementById('sortButton');
+  
   if (sortToggle) {
     sortToggle.addEventListener('change', () => {
       toggleSortOrder();
     });
     console.log('✅ Listener agregado al switch de ordenamiento');
+    
+    // Detectar si el switch se renderiza correctamente
+    setTimeout(() => {
+      const switchContainer = document.querySelector('.sort-switch-container');
+      const slider = document.querySelector('.slider');
+      
+      if (switchContainer && slider) {
+        const computedStyle = window.getComputedStyle(slider);
+        const width = computedStyle.width;
+        const height = computedStyle.height;
+        
+        // Si el switch no se renderiza correctamente, mostrar botón alternativo
+        if (width === '0px' || height === '0px' || width === 'auto' || height === 'auto') {
+          console.warn('⚠️ Switch no se renderiza correctamente, usando botón alternativo');
+          switchContainer.style.display = 'none';
+          if (sortButton) {
+            sortButton.style.display = 'flex';
+          }
+        }
+      }
+    }, 1000);
   } else {
     console.error('❌ sortToggle no encontrado');
+  }
+  
+  // Listener para el botón alternativo
+  if (sortButton) {
+    sortButton.addEventListener('click', () => {
+      toggleSortOrder();
+      updateSortButtonText();
+    });
+    console.log('✅ Listener agregado al botón de ordenamiento alternativo');
   }
   
   

@@ -108,30 +108,34 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
 .sort-switch-container{
   display:flex;align-items:center;gap:8px;margin-left:16px;
   background:var(--card);border:1px solid var(--border);border-radius:20px;
-  padding:8px 12px;font-size:0.8rem;font-family:'Montserrat',sans-serif
+  padding:8px 12px;font-size:0.8rem;font-family:'Montserrat',sans-serif;
+  flex-shrink:0;min-width:fit-content
 }
 
 .sort-label{
-  color:var(--text);font-weight:500;font-size:0.75rem;white-space:nowrap
+  color:var(--text);font-weight:500;font-size:0.75rem;white-space:nowrap;
+  user-select:none;pointer-events:none
 }
 
 .sort-switch{
-  position:relative;display:inline-block;width:44px;height:24px
+  position:relative;display:inline-block;width:44px;height:24px;
+  flex-shrink:0
 }
 
 .sort-switch input{
-  opacity:0;width:0;height:0
+  opacity:0;width:0;height:0;position:absolute;left:-9999px
 }
 
 .slider{
   position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
-  background:var(--btn);border:1px solid var(--border);transition:0.3s;
-  border-radius:24px
+  background:var(--btn);border:1px solid var(--border);transition:all 0.3s ease;
+  border-radius:24px;box-sizing:border-box
 }
 
 .slider:before{
   position:absolute;content:"";height:18px;width:18px;left:2px;bottom:2px;
-  background:var(--text);transition:0.3s;border-radius:50%
+  background:var(--text);transition:all 0.3s ease;border-radius:50%;
+  box-sizing:border-box
 }
 
 input:checked + .slider{
@@ -144,6 +148,88 @@ input:checked + .slider:before{
 
 .sort-switch:hover .slider{
   border-color:var(--edesur-orange)
+}
+
+/* Mejoras para compatibilidad con Netlify */
+.sort-switch-container{
+  /* Forzar renderizado correcto en Netlify */
+  -webkit-appearance:none;appearance:none;
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  will-change:transform
+}
+
+.sort-switch{
+  /* Asegurar renderizado consistente */
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden;perspective:1000px
+}
+
+.slider{
+  /* Mejorar renderizado en diferentes navegadores */
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden
+}
+
+.slider:before{
+  /* Asegurar que el círculo se renderice correctamente */
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden
+}
+
+@media (max-width:768px){
+  .sort-switch-container{
+    margin-left:8px;padding:6px 10px;gap:6px
+  }
+  
+  .sort-label{
+    font-size:0.7rem
+  }
+  
+  .sort-switch{
+    width:40px;height:22px
+  }
+  
+  .slider:before{
+    height:16px;width:16px
+  }
+  
+  input:checked + .slider:before{
+    transform:translateX(18px)
+  }
+}
+
+/* Estilos adicionales para Netlify */
+.sort-switch-container *{
+  box-sizing:border-box
+}
+
+.sort-switch input[type="checkbox"]{
+  -webkit-appearance:none;appearance:none;margin:0;padding:0
+}
+
+/* Botón alternativo para ordenamiento */
+.sort-button{
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  padding:8px 12px;border-radius:20px;cursor:pointer;font-size:0.8rem;
+  font-family:'Montserrat',sans-serif;display:flex;align-items:center;gap:6px;
+  transition:all 0.3s ease;margin-left:16px;flex-shrink:0
+}
+
+.sort-button:hover{
+  background:var(--edesur-orange);border-color:var(--edesur-orange);color:white;
+  transform:scale(1.05)
+}
+
+.sort-button:active{
+  transform:scale(0.95)
+}
+
+.sort-icon{
+  font-size:0.9rem
+}
+
+.sort-text{
+  font-weight:500;white-space:nowrap
 }
 .status-dot{
   width:8px;height:8px;background:var(--ok);border-radius:50%;
