@@ -89,11 +89,11 @@ function renderAlertCard(row){
   console.log('📄 Renderizando tarjeta para registro:', row);
   
   // Mapear campos de la base de datos a los esperados por la interfaz
-  const terms = toArrayMaybe(row.termino_d); // termino_d en lugar de terminos
+  const terms = toArrayMaybe(row.termino_detectado); // termino_detectado en lugar de termino_d
   const card = document.createElement('section');
   card.className = 'alert-card';
   card.dataset.id = row.id; // Para identificar la tarjeta
-  card.dataset.termino = (row.termino_d || '').toLowerCase();
+  card.dataset.termino = (row.termino_detectado || '').toLowerCase();
   card.dataset.ejecutivo = (row.ejecutivo || '').toLowerCase();
   card.dataset.contexto = (row.contexto || '').toLowerCase();
   card.dataset.transcripcion = (row.transcripcion || '').toLowerCase();
@@ -111,17 +111,14 @@ function renderAlertCard(row){
 
   // Generar resumen ejecutivo basado en los datos
   const generateSummary = () => {
-    const mainTerm = terms.length > 0 ? terms[0] : 'contenido';
+    const terminoDetectado = row.termino_detectado || '';
     const context = row.ejecutivo || row.contexto || 'Se detectó contenido relevante en el programa.';
-    const keyPoints = terms.length > 1 ? 
-      `Se identificaron múltiples términos: ${terms.join(', ')}.` : 
-      `El término "${mainTerm}" fue identificado en el contexto del programa.`;
     const relevance = row.relevancia || 'Esta mención es significativa para el monitoreo de contenido y puede requerir seguimiento adicional.';
     
     return {
-      tema: `Se detectó una mención del término "${mainTerm}" en el contenido.`,
+      tema: terminoDetectado,
       contexto: context,
-      puntos: keyPoints,
+      puntos: terminoDetectado,
       relevancia: relevance
     };
   };
@@ -209,11 +206,11 @@ function renderAlertCard(row){
     <div class="alert-header">
       <div class="alert-title">
         <span class="alert-dot"></span>
-        <span>Coincidencia Detectada${terms.length > 0 ? `: ${escapeHtml(terms[0])}` : ''}</span>
+        <span>Coincidencia: ${terms.length > 0 ? escapeHtml(capitalizeFirst(terms[0])) : 'Detectada'}</span>
       </div>
       <div class="alert-time">
         <span>📅</span>
-        <span>${escapeHtml(formatDate(row.fecha_detencion || row.fecha_programa))}</span>
+        <span>${escapeHtml(formatShortDate(row.fecha_detencion || row.fecha_programa))}</span>
       </div>
     </div>
 
@@ -222,11 +219,11 @@ function renderAlertCard(row){
     <div class="media-info">
       <div class="info-box">
         <div class="info-label">PROGRAMA</div>
-        <div class="info-value">${escapeHtml(fmt(row.nombre_archivo))}</div>
+        <div class="info-value">${escapeHtml(extractProgramName(row.nombre_archivo))}</div>
       </div>
       <div class="info-box">
         <div class="info-label">HORARIO</div>
-        <div class="info-value">${escapeHtml(fmt(row.hora_programa))}</div>
+        <div class="info-value">${escapeHtml(format12Hour(row.hora_programa))}</div>
       </div>
       <div class="info-box">
         <div class="info-label">RELEVANCIA</div>
@@ -274,8 +271,13 @@ function renderAlertCard(row){
 function toggleCardExpansion(card) {
   const isExpanded = card.classList.contains('expanded');
   
-  // Contraer todas las tarjetas expandidas
+  // Contraer todas las tarjetas expandidas y detener sus videos
   document.querySelectorAll('.alert-card.expanded').forEach(expandedCard => {
+    const video = expandedCard.querySelector('.video');
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
     expandedCard.classList.remove('expanded');
   });
   
@@ -288,9 +290,79 @@ function toggleCardExpansion(card) {
 // Función para cerrar tarjeta expandida
 function closeExpandedCard(card) {
   if (card) {
+    // Detener el video si está reproduciéndose
+    const video = card.querySelector('.video');
+    if (video) {
+      video.pause();
+      video.currentTime = 0; // Opcional: volver al inicio
+    }
+    
     card.classList.remove('expanded');
   }
 }
+
+// Función para formatear fecha a formato corto
+function formatShortDate(dateString) {
+  if (!dateString) return 'Sin fecha';
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Fecha inválida';
+  
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 
+                  'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  
+  return `${day} ${month}. ${year}`;
+}
+
+// Función para formatear hora a formato 12 horas
+function format12Hour(timeString) {
+  if (!timeString) return 'Sin hora';
+  
+  // Si ya tiene formato HH:MM:SS, usarlo directamente
+  if (timeString.includes(':')) {
+    const [hours, minutes, seconds] = timeString.split(':');
+    const hour24 = parseInt(hours);
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    return `${hour12}:${minutes} ${ampm}`;
+  }
+  
+  return timeString;
+}
+
+// Función para extraer el primer término del programa
+function extractProgramName(filename) {
+  if (!filename) return 'Sin programa';
+  
+  // Remover extensión
+  const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+  
+  // Buscar el primer número que no esté pegado a una letra
+  const match = nameWithoutExt.match(/^([^0-9]*[A-Za-z][^0-9]*?)(?=\s*\d)/);
+  
+  if (match) {
+    return match[1].trim();
+  }
+  
+  // Si no hay números o están todos pegados a letras, devolver todo hasta el primer espacio seguido de número
+  const fallbackMatch = nameWithoutExt.match(/^([A-Za-z][A-Za-z0-9]*\s*[A-Za-z]*)/);
+  if (fallbackMatch) {
+    return fallbackMatch[1].trim();
+  }
+  
+  return nameWithoutExt;
+}
+
+// Función para capitalizar primera letra
+function capitalizeFirst(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
 
 // Simple escape para evitar XSS si traes texto desde BD
 function escapeHtml(str){
@@ -540,6 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
       filterCards(currentFilter === filter ? null : filter);
     });
   });
+  
+  
   
   console.log('🏷️ Total de tags de filtro configurados:', document.querySelectorAll('.filter-tag').length);
 
