@@ -294,6 +294,7 @@ function renderAlertCard(row){
   card.dataset.ejecutivo = (row.ejecutivo || '').toLowerCase();
   card.dataset.contexto = (row.contexto || '').toLowerCase();
   card.dataset.transcripcion = (row.transcripcion || '').toLowerCase();
+  card.dataset.date = row.fecha_detencion || row.fecha_programa || new Date().toISOString(); // Para ordenamiento
   
   console.log('📄 Datos de la tarjeta:', {
     id: row.id,
@@ -743,6 +744,7 @@ function enableRealtime(){
 // ====== Filtros ======
 let currentFilter = null;
 let allCards = [];
+let sortOrder = 'desc'; // 'desc' = más recientes primero, 'asc' = más antiguos primero
 
 // Función para filtrar tarjetas
 function filterCards(filter) {
@@ -804,6 +806,42 @@ function filterCards(filter) {
   showToast(filter ? `Filtrado por: ${filter} (${visibleCount} videos)` : `Mostrando todos los videos (${allCards.length})`);
 }
 
+// Función para cambiar el ordenamiento
+function toggleSortOrder() {
+  sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+  console.log('🔄 Cambiando ordenamiento a:', sortOrder === 'desc' ? 'Más recientes' : 'Más antiguos');
+  
+  // Reorganizar las tarjetas según el nuevo orden
+  reorganizeCards();
+  
+  showToast(sortOrder === 'desc' ? '📅 Ordenado: Más recientes primero' : '📅 Ordenado: Más antiguos primero');
+}
+
+// Función para reorganizar las tarjetas según el ordenamiento
+function reorganizeCards() {
+  const feed = document.getElementById('feed');
+  const visibleCards = Array.from(feed.children);
+  
+  // Ordenar las tarjetas por fecha
+  visibleCards.sort((a, b) => {
+    const dateA = new Date(a.dataset.date || 0);
+    const dateB = new Date(b.dataset.date || 0);
+    
+    if (sortOrder === 'desc') {
+      return dateB - dateA; // Más recientes primero
+    } else {
+      return dateA - dateB; // Más antiguos primero
+    }
+  });
+  
+  // Reorganizar en el DOM
+  visibleCards.forEach(card => {
+    feed.appendChild(card);
+  });
+  
+  console.log('🔄 Tarjetas reorganizadas con ordenamiento:', sortOrder);
+}
+
 // ====== Listeners ======
 document.addEventListener('DOMContentLoaded', () => {
   // Verificar que los elementos existan antes de agregar listeners
@@ -852,6 +890,17 @@ document.addEventListener('DOMContentLoaded', () => {
       filterCards(currentFilter === filter ? null : filter);
     });
   });
+  
+  // Agregar listener al switch de ordenamiento
+  const sortToggle = document.getElementById('sortToggle');
+  if (sortToggle) {
+    sortToggle.addEventListener('change', () => {
+      toggleSortOrder();
+    });
+    console.log('✅ Listener agregado al switch de ordenamiento');
+  } else {
+    console.error('❌ sortToggle no encontrado');
+  }
   
   
   
