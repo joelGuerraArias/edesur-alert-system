@@ -18,7 +18,7 @@ console.log('btnExportar:', btnExportar);
 console.log('btnDrive:', btnDrive);
 
 // ====== Config / Estado ======
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10; // Aumentado para mostrar más videos inicialmente
 let offset = 0;
 
 // ====== Utilidades ======
@@ -28,6 +28,203 @@ function showToast(msg, type='ok'){
   t.className = `toast show ${type === 'error' ? 'err' : 'ok'}`;
   setTimeout(()=> t.classList.remove('show'), 2500);
 }
+
+function showLoadMoreButton() {
+  if (btnCargarMas) {
+    btnCargarMas.style.display = 'inline-block';
+  }
+}
+
+// Función para capturar el frame actual del video
+async function captureVideoFrame(button) {
+  const card = button.closest('.alert-card');
+  const video = card.querySelector('.video');
+  
+  if (!video) {
+    showToast('No se encontró el video', 'error');
+    return;
+  }
+  
+  // Verificar que el video esté cargado
+  if (video.readyState < 2) {
+    showToast('El video aún se está cargando, espera un momento', 'error');
+    return;
+  }
+  
+  // Verificar que el video tenga dimensiones válidas
+  if (!video.videoWidth || !video.videoHeight) {
+    showToast('El video no tiene dimensiones válidas', 'error');
+    return;
+  }
+  
+  try {
+    // Crear canvas para capturar el frame
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      throw new Error('No se pudo obtener el contexto del canvas');
+    }
+    
+    // Configurar canvas con las dimensiones del video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    console.log('📷 Capturando frame - Dimensiones:', canvas.width, 'x', canvas.height);
+    console.log('📷 Tiempo del video:', video.currentTime);
+    
+    // Capturar el frame actual del video
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Intentar convertir a imagen (puede fallar por CORS)
+    let thumbnailUrl;
+    try {
+      thumbnailUrl = canvas.toDataURL('image/jpeg', 0.9);
+    } catch (corsError) {
+      console.warn('⚠️ Error de CORS al capturar frame:', corsError.message);
+      
+      // Alternativa: usar un frame por defecto o mensaje
+      showToast('⚠️ No se puede capturar frame por restricciones de seguridad. Usando frame por defecto.', 'error');
+      
+      // Crear un thumbnail alternativo con un mensaje
+      const altCanvas = document.createElement('canvas');
+      const altCtx = altCanvas.getContext('2d');
+      altCanvas.width = 320;
+      altCanvas.height = 180;
+      
+      // Fondo oscuro
+      altCtx.fillStyle = '#1a1a1a';
+      altCtx.fillRect(0, 0, 320, 180);
+      
+      // Texto
+      altCtx.fillStyle = '#ffffff';
+      altCtx.font = '16px Arial';
+      altCtx.textAlign = 'center';
+      altCtx.fillText('📷 Thumbnail no disponible', 160, 90);
+      altCtx.fillText('por restricciones CORS', 160, 110);
+      
+      thumbnailUrl = altCanvas.toDataURL('image/jpeg', 0.9);
+    }
+    
+    if (!thumbnailUrl || thumbnailUrl === 'data:,') {
+      throw new Error('No se pudo generar la imagen del thumbnail');
+    }
+    
+    // Aplicar el thumbnail al video inmediatamente
+    video.poster = thumbnailUrl;
+    
+    // Guardar en Supabase
+    const cardId = card.dataset.id;
+    console.log('📷 Guardando thumbnail en Supabase para video:', cardId);
+    
+    await saveThumbnailToSupabase(cardId, thumbnailUrl, video.currentTime);
+    
+    // Mostrar confirmación
+    showToast('📷 Frame capturado y guardado en Supabase');
+    
+    // Cambiar el ícono del botón para indicar que se capturó
+    button.innerHTML = '✅';
+    button.style.background = 'var(--ok)';
+    button.title = 'Frame capturado - Click para cambiar';
+    
+    console.log('✅ Frame capturado exitosamente para video:', cardId, 'Tiempo:', video.currentTime);
+    
+  } catch (error) {
+    console.error('❌ Error al capturar frame:', error);
+    showToast(`Error al capturar el frame: ${error.message}`, 'error');
+  }
+}
+
+// Función para guardar thumbnail en Supabase
+async function saveThumbnailToSupabase(videoId, thumbnailDataUrl, timestamp) {
+  try {
+    console.log('📷 Intentando guardar thumbnail en Supabase...');
+    console.log('📷 Video ID:', videoId);
+    console.log('📷 Timestamp:', timestamp);
+    console.log('📷 Thumbnail size:', thumbnailDataUrl.length, 'caracteres');
+    
+    const { data, error } = await supabase
+      .from('video_thumbnails')
+      .upsert({
+        video_id: videoId,
+        thumbnail_data: thumbnailDataUrl,
+        timestamp: timestamp,
+        created_at: new Date().toISOString()
+      }, {
+        onConflict: 'video_id'
+      });
+
+    if (error) {
+      console.error('❌ Error al guardar thumbnail en Supabase:', error);
+      console.error('❌ Detalles del error:', error.message, error.details, error.hint);
+      throw new Error(`Error de Supabase: ${error.message}`);
+    }
+    
+    console.log('✅ Thumbnail guardado exitosamente en Supabase:', videoId);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en saveThumbnailToSupabase:', error);
+    throw error;
+  }
+}
+
+// Función para cargar thumbnail desde Supabase
+async function loadThumbnailFromSupabase(videoId) {
+  try {
+    const { data, error } = await supabase
+      .from('video_thumbnails')
+      .select('thumbnail_data, timestamp')
+      .eq('video_id', videoId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('❌ Error al cargar thumbnail desde Supabase:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('❌ Error en loadThumbnailFromSupabase:', error);
+    return null;
+  }
+}
+
+// Función alternativa para capturar frame sin CORS (usando proxy)
+async function captureFrameWithProxy(videoUrl, timestamp) {
+  try {
+    // Usar un servicio de proxy para evitar CORS
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(videoUrl)}`;
+    
+    // Crear un video temporal para capturar el frame
+    const tempVideo = document.createElement('video');
+    tempVideo.crossOrigin = 'anonymous';
+    tempVideo.src = proxyUrl;
+    
+    return new Promise((resolve, reject) => {
+      tempVideo.addEventListener('loadeddata', () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = tempVideo.videoWidth;
+        canvas.height = tempVideo.videoHeight;
+        
+        tempVideo.currentTime = timestamp;
+        tempVideo.addEventListener('seeked', () => {
+          ctx.drawImage(tempVideo, 0, 0);
+          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.9);
+          resolve(thumbnailUrl);
+        });
+      });
+      
+      tempVideo.addEventListener('error', (error) => {
+        reject(new Error('No se pudo cargar el video a través del proxy'));
+      });
+    });
+  } catch (error) {
+    console.error('❌ Error en captureFrameWithProxy:', error);
+    throw error;
+  }
+}
+
 
 function toArrayMaybe(v){
   if (Array.isArray(v)) return v;
@@ -129,7 +326,7 @@ function renderAlertCard(row){
     <div class="video-section">
       <div class="video-container">
         <button class="close-button" onclick="event.stopPropagation(); closeExpandedCard(this.closest('.alert-card'))">✕</button>
-        <video class="video" controls preload="metadata" onerror="this.parentElement.innerHTML = '<div style=\\'display:flex;align-items:center;justify-content:center;height:300px;opacity:.7;border:1px dashed var(--danger);color:var(--danger);\\'>Error al cargar video</div>'">
+        <video class="video" controls preload="metadata" crossorigin="anonymous" onerror="this.parentElement.innerHTML = '<div style=\\'display:flex;align-items:center;justify-content:center;height:300px;opacity:.7;border:1px dashed var(--danger);color:var(--danger);\\'>Error al cargar video</div>'">
           <source src="${row.url_video}" type="video/mp4"/>
           Tu navegador no soporta video HTML5.
         </video>
@@ -211,6 +408,9 @@ function renderAlertCard(row){
       <div class="alert-time">
         <span>📅</span>
         <span>${escapeHtml(formatShortDate(row.fecha_detencion || row.fecha_programa))}</span>
+        <button class="camera-btn" onclick="event.stopPropagation(); captureVideoFrame(this)" title="Capturar frame actual">
+          📷
+        </button>
       </div>
     </div>
 
@@ -239,6 +439,26 @@ function renderAlertCard(row){
   // Agregar event listener para expandir/contraer
   card.addEventListener('click', () => {
     toggleCardExpansion(card);
+  });
+  
+  // Cargar thumbnail desde Supabase
+  loadThumbnailFromSupabase(row.id).then(thumbnailData => {
+    if (thumbnailData && thumbnailData.thumbnail_data) {
+      const video = card.querySelector('.video');
+      if (video) {
+        video.poster = thumbnailData.thumbnail_data;
+        // Marcar el botón como capturado
+        const cameraBtn = card.querySelector('.camera-btn');
+        if (cameraBtn) {
+          cameraBtn.innerHTML = '✅';
+          cameraBtn.style.background = 'var(--ok)';
+          cameraBtn.title = 'Frame capturado - Click para cambiar';
+        }
+        console.log('📷 Thumbnail cargado desde Supabase para video:', row.id);
+      }
+    }
+  }).catch(error => {
+    console.error('❌ Error al cargar thumbnail desde Supabase:', error);
   });
   
   // Agregar event listener para tooltip con delay
@@ -391,6 +611,7 @@ function prependOne(row){
   const el = renderAlertCard(row);
   feed.insertBefore(el, feed.firstChild);
   allCards.unshift(el);
+  console.log('🆕 Nueva alerta agregada al inicio:', row.id, 'Total allCards:', allCards.length);
 }
 
 // ====== Acciones ======
@@ -401,8 +622,10 @@ async function loadFirstPage(){
     offset = 0;
     feedEl.innerHTML = '';
     allCards = []; // Limpiar array de tarjetas
-    console.log('🔄 Cargando primera página...');
-    const rows = await fetchAlerts(PAGE_SIZE, offset);
+    console.log('🔄 Cargando todos los videos disponibles...');
+    
+    // Cargar todos los videos disponibles (sin límite de PAGE_SIZE)
+    const rows = await fetchAlerts(100, offset); // Aumentar límite para cargar más videos
     console.log('📊 Registros obtenidos:', rows.length);
     
     if (rows.length > 0) {
@@ -410,6 +633,15 @@ async function loadFirstPage(){
       offset += rows.length;
       showToast(`✅ Cargados ${rows.length} registros`);
       console.log('📊 Total de tarjetas en allCards:', allCards.length);
+      
+      // Mostrar/ocultar botón "Cargar más" según si hay más videos
+      if (rows.length < 100) {
+        btnCargarMas.style.display = 'none';
+        console.log('📊 Todos los videos cargados, ocultando botón "Cargar más"');
+      } else {
+        showLoadMoreButton();
+        console.log('📊 Hay más videos disponibles, mostrando botón "Cargar más"');
+      }
     } else {
       // Mostrar mensaje de no hay datos
       feedEl.innerHTML = `
@@ -445,9 +677,17 @@ async function loadMore(){
     const rows = await fetchAlerts(PAGE_SIZE, offset);
     if (rows.length === 0){
       showToast('No hay más registros');
+      btnCargarMas.style.display = 'none'; // Ocultar botón si no hay más datos
     } else {
       appendBatch(rows);
       offset += rows.length;
+      showToast(`✅ Cargados ${rows.length} registros adicionales`);
+      
+      // Si se cargaron menos registros que PAGE_SIZE, significa que no hay más
+      if (rows.length < PAGE_SIZE) {
+        btnCargarMas.style.display = 'none';
+        console.log('📊 No hay más videos disponibles, ocultando botón "Cargar más"');
+      }
     }
   }catch(e){
     showToast('Error cargando más: ' + e.message, 'error');
@@ -619,9 +859,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   enableRealtime();
   loadFirstPage();
-
-  // ===== PRUEBA: Traer 2 datos de Supabase ======
-  testSupabaseConnection();
 });
 
 // ====== Función de prueba para verificar datos ======
@@ -634,6 +871,7 @@ async function testSupabaseConnection(){
     const { data, error } = await supabase
       .from('alertas_medios')
       .select('*')
+      .order('fecha_detencion', { ascending: false })  // 👈 Ordenar por fecha de detección (más reciente primero)
       .limit(5);
 
     if (error) {
@@ -650,13 +888,16 @@ async function testSupabaseConnection(){
       console.log('📄 Primer registro completo:', data[0]);
       showToast(`✅ Conexión OK. ${data.length} registros encontrados.`);
       
-      // Mostrar los datos en la interfaz
+      // Mostrar los datos en la interfaz respetando el ordenamiento
       if (data.length > 0) {
         feedEl.innerHTML = '';
+        allCards = []; // Limpiar array de tarjetas
         data.forEach(record => {
           const card = renderAlertCard(record);
           feedEl.appendChild(card);
+          allCards.push(card);
         });
+        console.log('📊 Total de tarjetas en allCards:', allCards.length);
       }
     } else {
       console.log('⚠️ No hay datos en la tabla alertas_medios');
