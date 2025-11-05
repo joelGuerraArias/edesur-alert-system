@@ -299,6 +299,22 @@ input:checked + .slider:before{
   transform:scale(0.95)
 }
 
+.hide-btn{
+  background:var(--btn);border:1px solid var(--border);color:var(--text);
+  padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.8rem;
+  transition:all 0.3s ease;margin-left:8px;min-width:32px;height:28px;
+  display:flex;align-items:center;justify-content:center
+}
+
+.hide-btn:hover{
+  background:var(--danger);border-color:var(--danger);color:white;
+  transform:scale(1.05)
+}
+
+.hide-btn:active{
+  transform:scale(0.95)
+}
+
 .media-info{
   padding:16px;display:flex;flex-direction:column;gap:8px
 }

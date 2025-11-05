@@ -402,7 +402,7 @@ function renderAlertCard(row){
 
   card.innerHTML = `
     <div class="tooltip">${escapeHtml(tooltipText)}</div>
-    
+
     <div class="alert-header">
       <div class="alert-title">
         <span class="alert-dot"></span>
@@ -413,6 +413,9 @@ function renderAlertCard(row){
         <span>${escapeHtml(formatShortDate(row.fecha_detencion || row.fecha_programa))}</span>
         <button class="camera-btn" onclick="event.stopPropagation(); captureVideoFrame(this)" title="Capturar frame actual">
           📷
+        </button>
+        <button class="hide-btn" onclick="event.stopPropagation(); hideVideoCard(this)" title="Ocultar video">
+          👁️
         </button>
       </div>
     </div>
@@ -519,8 +522,37 @@ function closeExpandedCard(card) {
       video.pause();
       video.currentTime = 0; // Opcional: volver al inicio
     }
-    
+
     card.classList.remove('expanded');
+  }
+}
+
+// Función para ocultar tarjeta de video
+function hideVideoCard(button) {
+  const card = button.closest('.alert-card');
+  if (card) {
+    // Detener el video si está reproduciéndose
+    const video = card.querySelector('.video');
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+    }
+
+    // Cerrar si está expandida
+    card.classList.remove('expanded');
+
+    // Ocultar la tarjeta con animación
+    card.style.opacity = '0';
+    card.style.transform = 'scale(0.9)';
+
+    setTimeout(() => {
+      card.style.display = 'none';
+
+      // Mostrar notificación
+      showToast('Video oculto - Recarga la página para verlo nuevamente');
+    }, 300);
+
+    console.log('🙈 Tarjeta oculta:', card.dataset.id);
   }
 }
 
