@@ -1096,7 +1096,7 @@ function updateSortButtonText() {
 }
 
 // ====== Forzar recarga de caché ======
-console.log('🚀 Aplicación cargada - Versión 3.2');
+console.log('🚀 Aplicación cargada - Versión 3.3');
 console.log('📅 Fecha de carga:', new Date().toLocaleString());
 
 // Verificar que todos los archivos se cargaron correctamente
