@@ -38,6 +38,52 @@ function showLoadMoreButton() {
   }
 }
 
+// ====== LocalStorage para videos ocultos ======
+const HIDDEN_VIDEOS_KEY = 'edesur_hidden_videos';
+
+// Obtener lista de videos ocultos desde localStorage
+function getHiddenVideos() {
+  try {
+    const hidden = localStorage.getItem(HIDDEN_VIDEOS_KEY);
+    return hidden ? JSON.parse(hidden) : [];
+  } catch (e) {
+    console.error('Error al leer videos ocultos desde localStorage:', e);
+    return [];
+  }
+}
+
+// Guardar un video como oculto en localStorage
+function saveHiddenVideo(videoId) {
+  try {
+    const hidden = getHiddenVideos();
+    if (!hidden.includes(videoId)) {
+      hidden.push(videoId);
+      localStorage.setItem(HIDDEN_VIDEOS_KEY, JSON.stringify(hidden));
+      console.log('💾 Video guardado como oculto:', videoId);
+    }
+  } catch (e) {
+    console.error('Error al guardar video oculto en localStorage:', e);
+  }
+}
+
+// Eliminar un video de la lista de ocultos en localStorage
+function removeHiddenVideo(videoId) {
+  try {
+    const hidden = getHiddenVideos();
+    const filtered = hidden.filter(id => id !== videoId);
+    localStorage.setItem(HIDDEN_VIDEOS_KEY, JSON.stringify(filtered));
+    console.log('💾 Video eliminado de ocultos:', videoId);
+  } catch (e) {
+    console.error('Error al eliminar video oculto de localStorage:', e);
+  }
+}
+
+// Verificar si un video está oculto
+function isVideoHidden(videoId) {
+  const hidden = getHiddenVideos();
+  return hidden.includes(videoId);
+}
+
 // Función para capturar el frame actual del video
 async function captureVideoFrame(button) {
   const card = button.closest('.alert-card');
@@ -493,7 +539,31 @@ function renderAlertCard(row){
       tooltip.style.visibility = 'hidden';
     }
   });
-  
+
+  // Verificar si el video está oculto en localStorage y aplicar estado
+  if (isVideoHidden(row.id)) {
+    card.classList.add('hidden-card');
+    card.dataset.hidden = 'true';
+
+    // Cambiar el ícono del botón a "ojo tachado"
+    const hideBtn = card.querySelector('.hide-btn');
+    if (hideBtn) {
+      hideBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      `;
+      hideBtn.title = 'Mostrar video';
+      hideBtn.onclick = (e) => {
+        e.stopPropagation();
+        showVideoCard(hideBtn);
+      };
+    }
+
+    console.log('💾 Video cargado como oculto desde localStorage:', row.id);
+  }
+
   return card;
 }
 
@@ -535,6 +605,8 @@ function closeExpandedCard(card) {
 function hideVideoCard(button) {
   const card = button.closest('.alert-card');
   if (card) {
+    const videoId = card.dataset.id;
+
     // Detener el video si está reproduciéndose
     const video = card.querySelector('.video');
     if (video) {
@@ -548,6 +620,9 @@ function hideVideoCard(button) {
     // Marcar como oculta
     card.classList.add('hidden-card');
     card.dataset.hidden = 'true';
+
+    // Guardar en localStorage para persistencia
+    saveHiddenVideo(videoId);
 
     // Cambiar el ícono del botón a "ojo tachado"
     const hideBtn = card.querySelector('.hide-btn');
@@ -566,9 +641,9 @@ function hideVideoCard(button) {
     }
 
     // Mostrar notificación
-    showToast('Video oculto - Usa el botón del menú para ver videos ocultos');
+    showToast('Video oculto permanentemente - Usa el botón del menú para ver videos ocultos');
 
-    console.log('🙈 Tarjeta oculta:', card.dataset.id);
+    console.log('🙈 Tarjeta oculta y guardada:', videoId);
 
     // Actualizar contador de videos ocultos
     updateHiddenCount();
@@ -579,9 +654,14 @@ function hideVideoCard(button) {
 function showVideoCard(button) {
   const card = button.closest('.alert-card');
   if (card) {
+    const videoId = card.dataset.id;
+
     // Quitar marca de oculta
     card.classList.remove('hidden-card');
     card.dataset.hidden = 'false';
+
+    // Eliminar de localStorage para persistencia
+    removeHiddenVideo(videoId);
 
     // Restaurar el ícono del botón a "ojo normal"
     const hideBtn = card.querySelector('.hide-btn');
@@ -602,7 +682,7 @@ function showVideoCard(button) {
     // Mostrar notificación
     showToast('Video visible de nuevo');
 
-    console.log('👁️ Tarjeta visible:', card.dataset.id);
+    console.log('👁️ Tarjeta visible y eliminada de ocultos:', videoId);
 
     // Actualizar contador de videos ocultos
     updateHiddenCount();
@@ -789,7 +869,10 @@ async function loadFirstPage(){
       offset += rows.length;
       showToast(`✅ Cargados ${rows.length} registros`);
       console.log('📊 Total de tarjetas en allCards:', allCards.length);
-      
+
+      // Actualizar contador de videos ocultos
+      updateHiddenCount();
+
       // Mostrar/ocultar botón "Cargar más" según si hay más videos
       if (rows.length < 100) {
         btnCargarMas.style.display = 'none';
@@ -838,7 +921,10 @@ async function loadMore(){
       appendBatch(rows);
       offset += rows.length;
       showToast(`✅ Cargados ${rows.length} registros adicionales`);
-      
+
+      // Actualizar contador de videos ocultos
+      updateHiddenCount();
+
       // Si se cargaron menos registros que PAGE_SIZE, significa que no hay más
       if (rows.length < PAGE_SIZE) {
         btnCargarMas.style.display = 'none';
@@ -1008,7 +1094,7 @@ function updateSortButtonText() {
 }
 
 // ====== Forzar recarga de caché ======
-console.log('🚀 Aplicación cargada - Versión 2.0');
+console.log('🚀 Aplicación cargada - Versión 3.1');
 console.log('📅 Fecha de carga:', new Date().toLocaleString());
 
 // Verificar que todos los archivos se cargaron correctamente
