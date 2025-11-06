@@ -717,8 +717,9 @@ function toggleHiddenCards() {
   const toggleBtn = document.getElementById('btnToggleHidden');
 
   if (showingHidden) {
-    // Mostrar todos los videos (incluidos los ocultos)
+    // Mostrar todos los videos (incluidos los ocultos) con estilo gris
     document.querySelectorAll('.alert-card.hidden-card').forEach(card => {
+      card.style.display = 'block';
       card.style.opacity = '0.6';
       card.style.filter = 'grayscale(50%)';
     });
@@ -738,6 +739,7 @@ function toggleHiddenCards() {
   } else {
     // Ocultar los videos marcados como ocultos
     document.querySelectorAll('.alert-card.hidden-card').forEach(card => {
+      card.style.display = '';
       card.style.opacity = '';
       card.style.filter = '';
     });
@@ -1094,7 +1096,7 @@ function updateSortButtonText() {
 }
 
 // ====== Forzar recarga de caché ======
-console.log('🚀 Aplicación cargada - Versión 3.1');
+console.log('🚀 Aplicación cargada - Versión 3.2');
 console.log('📅 Fecha de carga:', new Date().toLocaleString());
 
 // Verificar que todos los archivos se cargaron correctamente
