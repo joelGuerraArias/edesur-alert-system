@@ -9,6 +9,7 @@ const btnCargarMas = document.getElementById('btnCargarMas');
 const btnForzarRecarga = document.getElementById('btnForzarRecarga');
 const btnExportar = document.getElementById('btnExportar');
 const btnDrive = document.getElementById('btnDrive');
+const btnToggleHidden = document.getElementById('btnToggleHidden');
 
 // Verificar que los elementos existan
 console.log('🔍 Verificando elementos del DOM:');
@@ -415,7 +416,10 @@ function renderAlertCard(row){
           📷
         </button>
         <button class="hide-btn" onclick="event.stopPropagation(); hideVideoCard(this)" title="Ocultar video">
-          👁️
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
         </button>
       </div>
     </div>
@@ -541,18 +545,135 @@ function hideVideoCard(button) {
     // Cerrar si está expandida
     card.classList.remove('expanded');
 
-    // Ocultar la tarjeta con animación
-    card.style.opacity = '0';
-    card.style.transform = 'scale(0.9)';
+    // Marcar como oculta
+    card.classList.add('hidden-card');
+    card.dataset.hidden = 'true';
 
-    setTimeout(() => {
-      card.style.display = 'none';
+    // Cambiar el ícono del botón a "ojo tachado"
+    const hideBtn = card.querySelector('.hide-btn');
+    if (hideBtn) {
+      hideBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      `;
+      hideBtn.title = 'Mostrar video';
+      hideBtn.onclick = (e) => {
+        e.stopPropagation();
+        showVideoCard(hideBtn);
+      };
+    }
 
-      // Mostrar notificación
-      showToast('Video oculto - Recarga la página para verlo nuevamente');
-    }, 300);
+    // Mostrar notificación
+    showToast('Video oculto - Usa el botón del menú para ver videos ocultos');
 
     console.log('🙈 Tarjeta oculta:', card.dataset.id);
+
+    // Actualizar contador de videos ocultos
+    updateHiddenCount();
+  }
+}
+
+// Función para mostrar tarjeta de video
+function showVideoCard(button) {
+  const card = button.closest('.alert-card');
+  if (card) {
+    // Quitar marca de oculta
+    card.classList.remove('hidden-card');
+    card.dataset.hidden = 'false';
+
+    // Restaurar el ícono del botón a "ojo normal"
+    const hideBtn = card.querySelector('.hide-btn');
+    if (hideBtn) {
+      hideBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      `;
+      hideBtn.title = 'Ocultar video';
+      hideBtn.onclick = (e) => {
+        e.stopPropagation();
+        hideVideoCard(hideBtn);
+      };
+    }
+
+    // Mostrar notificación
+    showToast('Video visible de nuevo');
+
+    console.log('👁️ Tarjeta visible:', card.dataset.id);
+
+    // Actualizar contador de videos ocultos
+    updateHiddenCount();
+  }
+}
+
+// Función para actualizar contador de videos ocultos
+function updateHiddenCount() {
+  const hiddenCount = document.querySelectorAll('.alert-card.hidden-card').length;
+  const toggleBtn = document.getElementById('btnToggleHidden');
+  if (toggleBtn) {
+    const countSpan = toggleBtn.querySelector('.hidden-count');
+    if (countSpan) {
+      countSpan.textContent = hiddenCount > 0 ? ` (${hiddenCount})` : '';
+    }
+
+    // Mostrar/ocultar botón según si hay videos ocultos
+    if (hiddenCount > 0) {
+      toggleBtn.style.display = 'flex';
+    } else {
+      toggleBtn.style.display = 'none';
+    }
+  }
+}
+
+// Variable para rastrear si se están mostrando los videos ocultos
+let showingHidden = false;
+
+// Función para toggle de videos ocultos
+function toggleHiddenCards() {
+  showingHidden = !showingHidden;
+  const toggleBtn = document.getElementById('btnToggleHidden');
+
+  if (showingHidden) {
+    // Mostrar todos los videos (incluidos los ocultos)
+    document.querySelectorAll('.alert-card.hidden-card').forEach(card => {
+      card.style.opacity = '0.6';
+      card.style.filter = 'grayscale(50%)';
+    });
+
+    if (toggleBtn) {
+      toggleBtn.classList.add('active');
+      const icon = toggleBtn.querySelector('svg');
+      if (icon) {
+        icon.innerHTML = `
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        `;
+      }
+    }
+
+    showToast('Mostrando videos ocultos (en gris)');
+  } else {
+    // Ocultar los videos marcados como ocultos
+    document.querySelectorAll('.alert-card.hidden-card').forEach(card => {
+      card.style.opacity = '';
+      card.style.filter = '';
+    });
+
+    if (toggleBtn) {
+      toggleBtn.classList.remove('active');
+      const icon = toggleBtn.querySelector('svg');
+      if (icon) {
+        icon.innerHTML = `
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        `;
+      }
+    }
+
+    showToast('Videos ocultos de nuevo');
   }
 }
 
@@ -951,6 +1072,13 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ Listener agregado a btnDrive');
   } else {
     console.error('❌ btnDrive no encontrado');
+  }
+
+  if (btnToggleHidden) {
+    btnToggleHidden.addEventListener('click', toggleHiddenCards);
+    console.log('✅ Listener agregado a btnToggleHidden');
+  } else {
+    console.error('❌ btnToggleHidden no encontrado');
   }
 
   // Agregar listeners a los tags de filtro

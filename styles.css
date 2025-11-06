@@ -315,6 +315,35 @@ input:checked + .slider:before{
   transform:scale(0.95)
 }
 
+/* Botón para mostrar videos ocultos en el header */
+.btn-toggle-hidden{
+  display:flex;align-items:center;gap:8px;
+  background:var(--accent);border-color:var(--accent);
+  color:white;transition:all 0.3s ease
+}
+
+.btn-toggle-hidden:hover{
+  background:var(--danger);border-color:var(--danger);
+  transform:scale(1.05)
+}
+
+.btn-toggle-hidden.active{
+  background:var(--ok);border-color:var(--ok)
+}
+
+.btn-toggle-hidden svg{
+  flex-shrink:0
+}
+
+.hidden-count{
+  font-weight:bold;margin-left:4px
+}
+
+/* Tarjetas ocultas */
+.alert-card.hidden-card{
+  display:none
+}
+
 .media-info{
   padding:16px;display:flex;flex-direction:column;gap:8px
 }
