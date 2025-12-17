@@ -468,15 +468,11 @@ const CardManager = {
       <div class="media-info">
         <div class="info-box">
           <div class="info-label">PROGRAMA</div>
-          <div class="info-value">${Utils.escapeHtml(programName)}</div>
+          <div class="info-value">${Utils.escapeHtml(programName)} → Rating: +${formattedRating}</div>
         </div>
         <div class="info-box">
           <div class="info-label">HORARIO</div>
           <div class="info-value">${Utils.escapeHtml(Utils.format12Hour(row.hora_programa))}</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">RATING</div>
-          <div class="info-value">${formattedRating}</div>
         </div>
       </div>
 
