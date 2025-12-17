@@ -83,6 +83,42 @@
   </header>
 
   <main class="container">
+    <!-- Top Rating Section -->
+    <section class="top-rating-section">
+      <h3 class="top-rating-title">📊 Locales con mayor rating de los últimos 7 días</h3>
+      <div class="top-rating-container">
+        <div class="top-rating-item" data-channel="color" onclick="filterByChannel('color')">
+          <span class="top-rating-position">1</span>
+          <span class="top-rating-name">Color Visión</span>
+          <span class="top-rating-value">128,547</span>
+        </div>
+        <div class="top-rating-item" data-channel="telesistema" onclick="filterByChannel('telesistema')">
+          <span class="top-rating-position">2</span>
+          <span class="top-rating-name">Telesistema</span>
+          <span class="top-rating-value">115,823</span>
+        </div>
+        <div class="top-rating-item" data-channel="teleantillas" onclick="filterByChannel('teleantillas')">
+          <span class="top-rating-position">3</span>
+          <span class="top-rating-name">Teleantillas</span>
+          <span class="top-rating-value">98,432</span>
+        </div>
+        <div class="top-rating-item" data-channel="cdn" onclick="filterByChannel('cdn')">
+          <span class="top-rating-position">4</span>
+          <span class="top-rating-name">CDN</span>
+          <span class="top-rating-value">76,291</span>
+        </div>
+        <div class="top-rating-item" data-channel="rnn" onclick="filterByChannel('rnn')">
+          <span class="top-rating-position">5</span>
+          <span class="top-rating-name">RNN</span>
+          <span class="top-rating-value">62,845</span>
+        </div>
+      </div>
+      <div class="top-rating-total" id="topRatingTotal" data-channel="color" onclick="filterByChannel('color')" style="cursor:pointer">
+        <span class="total-label">🏆 Color Visión - Total contenidos:</span>
+        <span class="total-value">481,938</span>
+      </div>
+    </section>
+
     <!-- FEED: aquí se renderizan todas las tarjetas, una debajo de otra -->
     <section id="feed" class="feed"></section>
   </main>

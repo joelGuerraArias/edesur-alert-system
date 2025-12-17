@@ -1,5 +1,5 @@
 // ====== Supabase Init ======
-const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
 // ====== Selectores del DOM ======
 const feedEl = document.getElementById('feed');
@@ -146,7 +146,7 @@ async function saveThumbnailToSupabase(videoId, thumbnailDataUrl, timestamp) {
     console.log('📷 Timestamp:', timestamp);
     console.log('📷 Thumbnail size:', thumbnailDataUrl.length, 'caracteres');
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('video_thumbnails')
       .upsert({
         video_id: videoId,
@@ -174,7 +174,7 @@ async function saveThumbnailToSupabase(videoId, thumbnailDataUrl, timestamp) {
 // Función para cargar thumbnail desde Supabase
 async function loadThumbnailFromSupabase(videoId) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('video_thumbnails')
       .select('thumbnail_data, timestamp')
       .eq('video_id', videoId)
@@ -267,7 +267,7 @@ function isValidUrl(string) {
 async function fetchAlerts(limit = PAGE_SIZE, fromOffset = 0){
   console.log(`🔍 Consultando Supabase: limit=${limit}, offset=${fromOffset}`);
   
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('alertas_medios')
     .select('*')
     .order('fecha_detencion', { ascending: false })      // 👈 ordenar por fecha de detección (más reciente primero)
@@ -298,6 +298,8 @@ function renderAlertCard(row){
   card.dataset.contexto = (row.contexto || '').toLowerCase();
   card.dataset.transcripcion = (row.transcripcion || '').toLowerCase();
   card.dataset.date = row.fecha_detencion || row.fecha_programa || new Date().toISOString(); // Para ordenamiento
+  card.dataset.nombrearchivo = (row.nombre_archivo || '').toLowerCase();
+  card.dataset.nombremedio = (row.nombre_medio || '').toLowerCase();
   
   console.log('📄 Datos de la tarjeta:', {
     id: row.id,
@@ -434,6 +436,10 @@ function renderAlertCard(row){
       <div class="info-box">
         <div class="info-label">HORARIO</div>
         <div class="info-value">${escapeHtml(format12Hour(row.hora_programa))}</div>
+      </div>
+      <div class="info-box">
+        <div class="info-label">RATING</div>
+        <div class="info-value rating-value">${formatNumber(calculateRating(row.nombre_archivo || row.nombre_medio))}</div>
       </div>
       <div class="info-box">
         <div class="info-label">RELEVANCIA</div>
@@ -739,6 +745,35 @@ function capitalizeFirst(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
+// Función para calcular el rating basado en el programa/canal
+function calculateRating(programName) {
+  if (!programName) programName = '';
+  const name = programName.toLowerCase();
+  
+  // Panorama y Luna TV: entre 8,434 y 11,454
+  if (name.includes('panorama') || name.includes('luna')) {
+    return Math.floor(Math.random() * (11454 - 8434 + 1)) + 8434;
+  }
+  
+  // CDN, Teleuniverso, RNN, Cinevision: entre 45,790 y 84,533
+  if (name.includes('cdn') || name.includes('teleuniverso') || name.includes('rnn') || name.includes('cinevision')) {
+    return Math.floor(Math.random() * (84533 - 45790 + 1)) + 45790;
+  }
+  
+  // Color Vision, RTVD, Teleantillas, Telesistema, Antena: entre 87,332 y 132,413
+  if (name.includes('color') || name.includes('vision') || name.includes('rtvd') || name.includes('teleantillas') || name.includes('telesistema') || name.includes('antena')) {
+    return Math.floor(Math.random() * (132413 - 87332 + 1)) + 87332;
+  }
+  
+  // Otros: entre 13,432 y 45,334
+  return Math.floor(Math.random() * (45334 - 13432 + 1)) + 13432;
+}
+
+// Función para formatear número con separador de miles
+function formatNumber(num) {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 
 // Simple escape para evitar XSS si traes texto desde BD
 function escapeHtml(str){
@@ -857,7 +892,7 @@ async function loadMore(){
 
 // ====== Realtime (INSERT/UPDATE/DELETE) ======
 function enableRealtime(){
-  const channel = supabase
+  const channel = supabaseClient
     .channel('alertas-feed')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'alertas_medios' },
@@ -898,8 +933,83 @@ function enableRealtime(){
 
 // ====== Filtros ======
 let currentFilter = null;
+let currentChannelFilter = null;
 let allCards = [];
 let sortOrder = 'desc'; // 'desc' = más recientes primero, 'asc' = más antiguos primero
+
+// Función para filtrar por canal (desde el top rating)
+function filterByChannel(channel) {
+  console.log('📺 Filtrando por canal:', channel);
+  
+  // Si ya está filtrado por el mismo canal, quitar el filtro
+  if (currentChannelFilter === channel) {
+    currentChannelFilter = null;
+    // Quitar clase activa de todos los items del top rating
+    document.querySelectorAll('.top-rating-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    document.getElementById('topRatingTotal')?.classList.remove('active');
+    
+    // Mostrar todas las tarjetas
+    const feed = document.getElementById('feed');
+    feed.innerHTML = '';
+    allCards.forEach(card => {
+      feed.appendChild(card);
+    });
+    
+    showToast(`Mostrando todos los videos (${allCards.length})`);
+    return;
+  }
+  
+  currentChannelFilter = channel;
+  
+  // Actualizar estado visual de los items del top rating
+  document.querySelectorAll('.top-rating-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.dataset.channel === channel) {
+      item.classList.add('active');
+    }
+  });
+  
+  // Actualizar el total si coincide
+  const totalEl = document.getElementById('topRatingTotal');
+  if (totalEl) {
+    if (totalEl.dataset.channel === channel) {
+      totalEl.classList.add('active');
+    } else {
+      totalEl.classList.remove('active');
+    }
+  }
+  
+  // Filtrar tarjetas por canal
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '';
+  
+  let visibleCount = 0;
+  allCards.forEach(card => {
+    const nombreArchivo = (card.dataset.nombrearchivo || '').toLowerCase();
+    const nombreMedio = (card.dataset.nombremedio || '').toLowerCase();
+    const programa = nombreArchivo + ' ' + nombreMedio;
+    
+    if (programa.includes(channel.toLowerCase())) {
+      feed.appendChild(card);
+      visibleCount++;
+    }
+  });
+  
+  // Mapeo de nombres de canales para mostrar
+  const channelNames = {
+    'color': 'Color Visión',
+    'telesistema': 'Telesistema',
+    'teleantillas': 'Teleantillas',
+    'cdn': 'CDN',
+    'rnn': 'RNN'
+  };
+  
+  const channelDisplayName = channelNames[channel] || channel;
+  showToast(`📺 ${channelDisplayName}: ${visibleCount} contenidos`);
+  console.log('📺 Contenidos encontrados para', channelDisplayName + ':', visibleCount);
+}
 
 // Función para filtrar tarjetas
 function filterCards(filter) {
@@ -1152,7 +1262,7 @@ async function testSupabaseConnection(){
     console.log('URL:', window.SUPABASE_URL);
     console.log('Key:', window.SUPABASE_ANON_KEY ? 'Presente' : 'Faltante');
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('alertas_medios')
       .select('*')
       .order('fecha_detencion', { ascending: false })  // 👈 Ordenar por fecha de detección (más reciente primero)
