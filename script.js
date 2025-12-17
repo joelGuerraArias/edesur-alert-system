@@ -29,7 +29,7 @@ const RatingSystem = {
     'rnn': { min: 23943, max: 45000 },
     'teleuniverso': { min: 23943, max: 45000 },
     'color vision': { min: 60000, max: 80000 },
-    'default': { min: 12000, max: 323000 }
+    'default': { min: 23543, max: 30000 }
   },
 
   getRatingForProgram(programName) {
