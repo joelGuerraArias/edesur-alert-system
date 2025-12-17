@@ -1,13 +1,13 @@
 :root{
   /* Colores Edesur basados en el logo */
-  --edesur-blue:#1e3a8a;
-  --edesur-orange:#f97316;
-  --edesur-dark:#0f172a;
-  --edesur-light:#f8fafc;
-
+  --edesur-blue:#1e3a8a;      /* Azul oscuro del logo */
+  --edesur-orange:#f97316;    /* Naranja vibrante del logo */
+  --edesur-dark:#0f172a;      /* Azul muy oscuro */
+  --edesur-light:#f8fafc;     /* Blanco/gris claro */
+  
   /* Colores del sistema */
-  --bg:#1a1a1a;
-  --card:#2a2a2a;
+  --bg:#1a1a1a;               /* Fondo gris oscuro */
+  --card:#2a2a2a;             /* Tarjetas grises */
   --muted:#64748b;
   --text:var(--edesur-light);
   --accent:var(--edesur-orange);
@@ -31,7 +31,6 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
   display:flex;justify-content:space-between;align-items:center;
   padding:16px 20px;
 }
-
 /* Logo Edesur */
 .edesur-logo{
   display:flex;flex-direction:column;align-items:flex-start;margin-bottom:8px
@@ -40,8 +39,12 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
   position:relative;display:flex;align-items:baseline;font-family:'Montserrat',sans-serif;
   font-weight:700;font-size:1.8rem;line-height:1
 }
-.logo-ede{color:var(--edesur-blue)}
-.logo-sur{color:var(--edesur-orange);position:relative}
+.logo-ede{
+  color:var(--edesur-blue)
+}
+.logo-sur{
+  color:var(--edesur-orange);position:relative
+}
 .logo-reg{
   color:var(--edesur-orange);font-size:0.8rem;position:absolute;top:-2px;right:-12px
 }
@@ -65,12 +68,10 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
 .logo-section h1{
   margin:0;font-size:1.2rem;color:var(--text);font-weight:600
 }
-
 .alert-banner{
   background:var(--edesur-orange);color:white;text-align:center;padding:8px;
   font-weight:bold;font-size:0.9rem;letter-spacing:1px;font-family:'Montserrat',sans-serif
 }
-
 .header-main{
   padding:20px;text-align:center
 }
@@ -85,13 +86,6 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
   background:rgba(34,197,94,0.1);border:1px solid var(--ok);
   padding:8px 16px;border-radius:20px;font-size:0.9rem;font-family:'Montserrat',sans-serif;font-weight:500;
   margin-bottom:16px
-}
-.status-dot{
-  width:8px;height:8px;background:var(--ok);border-radius:50%;
-  animation:pulse 2s infinite
-}
-@keyframes pulse{
-  0%,100%{opacity:1}50%{opacity:0.5}
 }
 
 /* Tags de filtro */
@@ -115,8 +109,7 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
   display:flex;align-items:center;gap:8px;margin-left:16px;
   background:var(--card);border:1px solid var(--border);border-radius:20px;
   padding:8px 12px;font-size:0.8rem;font-family:'Montserrat',sans-serif;
-  flex-shrink:0;min-width:fit-content;
-  transform:translateZ(0);backface-visibility:hidden;perspective:1000px
+  flex-shrink:0;min-width:fit-content
 }
 
 .sort-label{
@@ -126,24 +119,23 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
 
 .sort-switch{
   position:relative;display:inline-block;width:44px;height:24px;
-  flex-shrink:0;transform:translateZ(0);backface-visibility:hidden
+  flex-shrink:0
 }
 
 .sort-switch input{
-  opacity:0;width:0;height:0;position:absolute;left:-9999px;
-  appearance:none;margin:0;padding:0
+  opacity:0;width:0;height:0;position:absolute;left:-9999px
 }
 
 .slider{
   position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
   background:var(--btn);border:1px solid var(--border);transition:all 0.3s ease;
-  border-radius:24px;box-sizing:border-box;transform:translateZ(0);backface-visibility:hidden
+  border-radius:24px;box-sizing:border-box
 }
 
 .slider:before{
   position:absolute;content:"";height:18px;width:18px;left:2px;bottom:2px;
   background:var(--text);transition:all 0.3s ease;border-radius:50%;
-  box-sizing:border-box;transform:translateZ(0);backface-visibility:hidden
+  box-sizing:border-box
 }
 
 input:checked + .slider{
@@ -156,6 +148,63 @@ input:checked + .slider:before{
 
 .sort-switch:hover .slider{
   border-color:var(--edesur-orange)
+}
+
+/* Mejoras para compatibilidad con Netlify */
+.sort-switch-container{
+  /* Forzar renderizado correcto en Netlify */
+  -webkit-appearance:none;appearance:none;
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  will-change:transform
+}
+
+.sort-switch{
+  /* Asegurar renderizado consistente */
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden;perspective:1000px
+}
+
+.slider{
+  /* Mejorar renderizado en diferentes navegadores */
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden
+}
+
+.slider:before{
+  /* Asegurar que el círculo se renderice correctamente */
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden
+}
+
+@media (max-width:768px){
+  .sort-switch-container{
+    margin-left:8px;padding:6px 10px;gap:6px
+  }
+  
+  .sort-label{
+    font-size:0.7rem
+  }
+  
+  .sort-switch{
+    width:40px;height:22px
+  }
+  
+  .slider:before{
+    height:16px;width:16px
+  }
+  
+  input:checked + .slider:before{
+    transform:translateX(18px)
+  }
+}
+
+/* Estilos adicionales para Netlify */
+.sort-switch-container *{
+  box-sizing:border-box
+}
+
+.sort-switch input[type="checkbox"]{
+  -webkit-appearance:none;appearance:none;margin:0;padding:0
 }
 
 /* Botón alternativo para ordenamiento */
@@ -175,9 +224,20 @@ input:checked + .slider:before{
   transform:scale(0.95)
 }
 
-.sort-icon{font-size:0.9rem}
-.sort-text{font-weight:500;white-space:nowrap}
+.sort-icon{
+  font-size:0.9rem
+}
 
+.sort-text{
+  font-weight:500;white-space:nowrap
+}
+.status-dot{
+  width:8px;height:8px;background:var(--ok);border-radius:50%;
+  animation:pulse 2s infinite
+}
+@keyframes pulse{
+  0%,100%{opacity:1}50%{opacity:0.5}
+}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .container{max-width:1100px;margin:20px auto;padding:0 12px}
 
@@ -193,8 +253,10 @@ input:checked + .slider:before{
   background:var(--card);border:1px solid var(--border);border-radius:16px;
   padding:20px;box-shadow:0 6px 18px rgba(0,0,0,.25);margin-bottom:20px
 }
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.timestamp{opacity:.85;font-size:.95rem}
 
-/* Tarjetas de alerta */
+/* Nuevos estilos para el formato detallado */
 .alert-card{
   background:var(--card);border:1px solid var(--border);border-radius:12px;
   padding:0;margin-bottom:0;box-shadow:0 4px 12px rgba(0,0,0,.2);
@@ -221,7 +283,7 @@ input:checked + .slider:before{
   display:flex;align-items:center;gap:4px;color:var(--danger);font-weight:500;font-size:0.85rem
 }
 
-.camera-btn, .hide-btn{
+.camera-btn{
   background:var(--btn);border:1px solid var(--border);color:var(--text);
   padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.8rem;
   transition:all 0.3s ease;margin-left:8px;min-width:32px;height:28px;
@@ -233,13 +295,24 @@ input:checked + .slider:before{
   transform:scale(1.05)
 }
 
-.camera-btn:active, .hide-btn:active{
+.camera-btn:active{
   transform:scale(0.95)
+}
+
+.hide-btn{
+  background:var(--btn);border:1px solid var(--border);color:var(--text);
+  padding:6px 8px;border-radius:6px;cursor:pointer;font-size:0.8rem;
+  transition:all 0.3s ease;margin-left:8px;min-width:32px;height:28px;
+  display:flex;align-items:center;justify-content:center
 }
 
 .hide-btn:hover{
   background:var(--danger);border-color:var(--danger);color:white;
   transform:scale(1.05)
+}
+
+.hide-btn:active{
+  transform:scale(0.95)
 }
 
 /* Botón para mostrar videos ocultos en el header */
@@ -258,9 +331,18 @@ input:checked + .slider:before{
   background:var(--ok);border-color:var(--ok)
 }
 
-.btn-toggle-hidden svg{flex-shrink:0}
-.hidden-count{font-weight:bold;margin-left:4px}
-.alert-card.hidden-card{display:none}
+.btn-toggle-hidden svg{
+  flex-shrink:0
+}
+
+.hidden-count{
+  font-weight:bold;margin-left:4px
+}
+
+/* Tarjetas ocultas */
+.alert-card.hidden-card{
+  display:none
+}
 
 .media-info{
   padding:16px;display:flex;flex-direction:column;gap:8px
@@ -269,7 +351,9 @@ input:checked + .slider:before{
   display:flex;justify-content:space-between;align-items:center;
   padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1)
 }
-.info-box:last-child{border-bottom:none}
+.info-box:last-child{
+  border-bottom:none
+}
 .info-label{
   font-size:0.8rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.5px;
   margin:0;min-width:80px
@@ -278,7 +362,9 @@ input:checked + .slider:before{
   font-size:0.9rem;font-weight:500;color:var(--text);text-align:right;flex:1
 }
 
-.video-section{margin:0}
+.video-section{
+  margin:0
+}
 .video-container{
   position:relative;width:100%;border-radius:0;overflow:hidden;
   background:#000;margin:0
@@ -287,7 +373,9 @@ input:checked + .slider:before{
   width:100%;height:180px;object-fit:cover;display:block
 }
 
-.video-links{display:none}
+.video-links{
+  display:none
+}
 .link-box{
   background:rgba(255,255,255,0.02);border:1px solid var(--border);
   border-radius:8px;padding:12px;display:flex;align-items:center;gap:8px
@@ -308,7 +396,9 @@ input:checked + .slider:before{
   font-size:0.8rem;font-weight:500
 }
 
-.summary-section{display:none}
+.summary-section{
+  display:none
+}
 .summary-content{
   background:rgba(255,255,255,0.02);border:1px solid var(--border);
   border-radius:12px;padding:20px;margin-top:16px
@@ -326,27 +416,42 @@ input:checked + .slider:before{
   opacity:0.9;line-height:1.5
 }
 
-.transcription-section{display:none}
+.transcription-section{
+  display:none
+}
 .transcription-content{
   background:rgba(255,255,255,0.02);border:1px solid var(--border);
   border-radius:12px;padding:20px;margin-top:16px;
-  line-height:1.6;white-space:pre-wrap;word-wrap:break-word;
-  max-height:none;overflow:visible
+  line-height:1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: none;
+  overflow: visible;
 }
 
 .read-more-btn{
-  background:var(--edesur-orange);color:white;border:none;border-radius:6px;
-  padding:8px 16px;font-size:0.85rem;font-family:'Montserrat',sans-serif;
-  font-weight:500;cursor:pointer;transition:all 0.3s ease;margin-top:10px
+  background: var(--edesur-orange);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
 }
 
 .read-more-btn:hover{
-  background:var(--edesur-blue);transform:translateY(-1px)
+  background: var(--edesur-blue);
+  transform: translateY(-1px);
 }
 
 .read-more-btn:active{
-  transform:translateY(0)
+  transform: translateY(0);
 }
+
 
 textarea{
   background:var(--bg);border:1px solid var(--border);color:var(--text);
@@ -397,8 +502,9 @@ textarea::placeholder{
   content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
   border:5px solid transparent;border-top-color:rgba(0,0,0,0.9)
 }
+/* Removido - ahora se controla con JavaScript */
 
-/* Scrollbar personalizado - WebKit (Chrome, Safari, Edge) */
+/* Scrollbar personalizado para toda la página */
 ::-webkit-scrollbar{
   width:12px
 }
@@ -412,11 +518,34 @@ textarea::placeholder{
   background:var(--edesur-blue)
 }
 
-/* Scrollbar personalizado - Firefox */
-* {
-  scrollbar-width:thin;
-  scrollbar-color:var(--edesur-orange) var(--bg)
+/* Responsive design */
+@media (max-width:1200px){
+  .feed{
+    grid-template-columns:repeat(auto-fit,minmax(260px,300px))
+  }
 }
+@media (max-width:768px){
+  .feed{
+    grid-template-columns:repeat(auto-fit,minmax(240px,280px));gap:16px
+  }
+  .container{
+    padding:0 8px
+  }
+}
+.badge{
+  display:inline-block;background:var(--badge);border:1px solid #2a3442;
+  padding:6px 10px;border-radius:999px;margin:4px 6px 0 0;font-size:.9rem
+}
+
+.grid{display:grid;gap:12px}
+.grid.two{grid-template-columns:1.1fr .9fr}
+@media (max-width:900px){.grid.two{grid-template-columns:1fr}}
+
+.info-row{display:flex;gap:10px;align-items:flex-start;margin:8px 0}
+.info-label{min-width:160px;opacity:.8}
+.info-value{font-weight:600}
+
+.video{width:100%;border-radius:12px;background:#000;outline:none}
 
 .btn{
   background:var(--btn);border:1px solid var(--border);color:var(--text);
@@ -437,43 +566,7 @@ textarea::placeholder{
 .toast.ok{border-color:var(--ok)}
 .toast.err{border-color:var(--danger)}
 
-/* Formularios */
-label{
-  display:flex;flex-direction:column;gap:4px;font-size:.9rem;opacity:.9;font-family:'Montserrat',sans-serif
-}
-input{
-  background:var(--bg);border:1px solid var(--border);color:var(--text);
-  padding:10px 12px;border-radius:8px;width:100%;font-family:'Montserrat',sans-serif
-}
+/* Estilos para el formulario mejorado */
+label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;opacity:.9;font-family:'Montserrat',sans-serif}
+input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;width:100%;font-family:'Montserrat',sans-serif}
 input::placeholder{color:var(--muted);opacity:.6}
-
-/* Responsive design */
-@media (max-width:1200px){
-  .feed{
-    grid-template-columns:repeat(auto-fit,minmax(260px,300px))
-  }
-}
-
-@media (max-width:768px){
-  .feed{
-    grid-template-columns:repeat(auto-fit,minmax(240px,280px));gap:16px
-  }
-  .container{
-    padding:0 8px
-  }
-  .sort-switch-container{
-    margin-left:8px;padding:6px 10px;gap:6px
-  }
-  .sort-label{
-    font-size:0.7rem
-  }
-  .sort-switch{
-    width:40px;height:22px
-  }
-  .slider:before{
-    height:16px;width:16px
-  }
-  input:checked + .slider:before{
-    transform:translateX(18px)
-  }
-}

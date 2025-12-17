@@ -6,13 +6,11 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="description" content="Sistema de Alerta de Medios - EDESUR - Monitoreo inteligente de contenido en tiempo real" />
-  <meta name="author" content="EDESUR Dominicana, S. A." />
   <title>Sistema de Alerta de Medios - EDESUR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=4.0" />
+  <link rel="stylesheet" href="styles.css?v=3.0" />
 </head>
 <body>
   <header class="app-header">
@@ -42,11 +40,11 @@
         <button class="btn" id="btnDrive">☁️ Drive</button>
       </div>
     </div>
-
+    
     <div class="alert-banner">
       <span class="alert-text">COINCIDENCIA DETECTADA</span>
     </div>
-
+    
     <div class="header-main">
       <h2>Sistema de Alerta de Medios</h2>
       <p class="subtitle">Monitoreo inteligente de contenido en tiempo real</p>
@@ -54,7 +52,7 @@
         <span class="status-dot"></span>
         <span>Sistema activo y monitoreando</span>
       </div>
-
+      
       <div class="filter-tags">
         <span class="filter-tag" data-filter="edesur">Edesur</span>
         <span class="filter-tag" data-filter="apagones">Apagones</span>
@@ -64,7 +62,8 @@
         <span class="filter-tag" data-filter="edenorte">Edenorte</span>
         <span class="filter-tag" data-filter="pacto-electrico">Pacto Eléctrico</span>
         <span class="filter-tag" data-filter="marranzini">Marranzini</span>
-
+        
+        <!-- Switch para ordenamiento -->
         <div class="sort-switch-container">
           <span class="sort-label">Más antiguos</span>
           <label class="sort-switch">
@@ -73,7 +72,8 @@
           </label>
           <span class="sort-label">Más recientes</span>
         </div>
-
+        
+        <!-- Botón alternativo para ordenamiento (fallback) -->
         <button class="sort-button" id="sortButton" style="display: none;">
           <span class="sort-icon">📅</span>
           <span class="sort-text">Más recientes</span>
@@ -83,20 +83,18 @@
   </header>
 
   <main class="container">
+    <!-- FEED: aquí se renderizan todas las tarjetas, una debajo de otra -->
     <section id="feed" class="feed"></section>
   </main>
 
   <div id="toast" class="toast" aria-live="polite"></div>
 
-  <!-- Supabase Client -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // NOTA DE SEGURIDAD: La ANON_KEY es segura para uso público siempre que
-    // Row Level Security (RLS) esté habilitado en Supabase. Asegúrate de
-    // implementar políticas RLS apropiadas en tu base de datos.
     window.SUPABASE_URL = "https://sfvbcprhfmwglqpyyfxz.supabase.co";
     window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdmJjcHJoZm13Z2xxcHl5Znh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5MTA0MTMsImV4cCI6MjA3MjQ4NjQxM30.PDxciEIhBhHJUGw2iXkEkiECfrVZ32sYl9FiTKsageU";
   </script>
-  <script src="script.js?v=4.0"></script>
+  <script src="script.js?v=3.0"></script>
 </body>
 </html>
