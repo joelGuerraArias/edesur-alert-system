@@ -237,6 +237,126 @@ function toArrayMaybe(v){
 
 function fmt(val, fallback='—'){ return (val ?? '').toString().trim() || fallback; }
 
+const AUDIO_EXTENSIONS = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.wma', '.flac'];
+
+function detectMediaType(row) {
+  const filename = (row.nombre_archivo || '').toLowerCase();
+  const url = (row.url_video || '').toLowerCase();
+  const combined = `${filename} ${url}`;
+
+  if (AUDIO_EXTENSIONS.some(ext => combined.includes(ext))) return 'audio';
+  if (/_fm_|_radio_|radio_/i.test(filename)) return 'audio';
+  if (/\.(mp4|webm|mov|avi|mkv)/i.test(combined)) return 'video';
+  if (/\bfm\b/i.test(filename)) return 'audio';
+
+  return 'video';
+}
+
+function pauseCardMedia(card) {
+  const video = card.querySelector('.video');
+  const audio = card.querySelector('.audio-player');
+  if (video) {
+    video.pause();
+    video.currentTime = 0;
+  }
+  if (audio) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+}
+
+function getMediaMimeType(mediaType, url) {
+  const lowerUrl = (url || '').toLowerCase();
+  if (mediaType === 'audio') {
+    if (lowerUrl.includes('.mp3')) return 'audio/mpeg';
+    if (lowerUrl.includes('.wav')) return 'audio/wav';
+    if (lowerUrl.includes('.ogg')) return 'audio/ogg';
+    return 'audio/mp4';
+  }
+  if (lowerUrl.includes('.webm')) return 'video/webm';
+  return 'video/mp4';
+}
+
+function handleVideoError(videoEl) {
+  const container = videoEl.closest('.video-container');
+  if (!container || container.querySelector('.media-error')) return;
+
+  videoEl.style.display = 'none';
+  const errorEl = document.createElement('div');
+  errorEl.className = 'media-error';
+  errorEl.style.cssText = 'display:flex;align-items:center;justify-content:center;height:180px;opacity:.7;border:1px dashed var(--danger);color:var(--danger);';
+  errorEl.textContent = 'Error al cargar video';
+  container.appendChild(errorEl);
+}
+
+function handleAudioError(audioEl) {
+  const container = audioEl.closest('.audio-container');
+  if (!container || container.querySelector('.media-error')) return;
+
+  const thumbnail = container.querySelector('.audio-thumbnail');
+  if (thumbnail) thumbnail.style.display = 'none';
+  audioEl.style.display = 'none';
+
+  const errorEl = document.createElement('div');
+  errorEl.className = 'media-error';
+  errorEl.style.cssText = 'display:flex;align-items:center;justify-content:center;height:180px;opacity:.7;border:1px dashed var(--danger);color:var(--danger);';
+  errorEl.textContent = 'Error al cargar audio';
+  container.appendChild(errorEl);
+}
+
+function detectSentiment(row) {
+  const text = [
+    row.contexto,
+    row.transcripcion,
+    row.resumen_ejecutivo,
+    row.ejecutivo
+  ].filter(Boolean).join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  if (!text.trim()) return 'neutral';
+
+  if (text.includes('no_relevante') || text.startsWith('no relevante')) {
+    return 'neutral';
+  }
+
+  const hasPositive = /sentimiento positiv|tono positiv|contexto positiv|\bpositivo\b|\bpositiva\b/.test(text);
+  const hasNegative = /sentimiento negativ|tono negativ|contexto negativ|\bnegativo\b|\bnegativa\b/.test(text);
+
+  if (hasPositive && !hasNegative) return 'positive';
+  if (hasNegative && !hasPositive) return 'negative';
+
+  const negativeWords = [
+    'protest', 'denunc', 'critic', 'queja', 'reclamo', 'afect', 'perdida',
+    'dan', 'mortal', 'victim', 'problema', 'crisis', 'falla', 'incumpl',
+    'descontent', 'grave', 'terrible', 'peor', 'deficiencia', 'apagon',
+    'apagones', 'interrupc', 'sin servicio', 'tarifa alta', 'factura alta',
+    'colapso', 'averia', 'retraso', 'impuntual', 'corrupc', 'escandalo'
+  ];
+  const positiveWords = [
+    'logro', 'mejora', 'exito', 'favorable', 'apoyo', 'reconoc',
+    'solucion', 'benefic', 'satisfe', 'eficient', 'cumpl', 'avance',
+    'optim', 'resuelto', 'normaliz', 'restablec', 'inversion',
+    'moderniz', 'progreso', 'transparencia', 'compromiso'
+  ];
+
+  let score = 0;
+  negativeWords.forEach(word => { if (text.includes(word)) score -= 1; });
+  positiveWords.forEach(word => { if (text.includes(word)) score += 1; });
+
+  if (score > 0) return 'positive';
+  if (score < 0) return 'negative';
+  return 'neutral';
+}
+
+function getSentimentBadgeHtml(sentiment) {
+  if (sentiment === 'positive') {
+    return '<span class="sentiment-badge sentiment-badge--positive">Positivo</span>';
+  }
+  if (sentiment === 'negative') {
+    return '<span class="sentiment-badge sentiment-badge--negative">Negativo</span>';
+  }
+  return '';
+}
+
 function formatDate(dateString) {
   if (!dateString) return '';
   try {
@@ -300,6 +420,13 @@ function renderAlertCard(row){
   card.dataset.date = row.fecha_detencion || row.fecha_programa || new Date().toISOString(); // Para ordenamiento
   card.dataset.nombrearchivo = (row.nombre_archivo || '').toLowerCase();
   card.dataset.nombremedio = (row.nombre_medio || '').toLowerCase();
+  const mediaType = detectMediaType(row);
+  card.dataset.mediatype = mediaType;
+  const programSource = row.nombre_archivo || row.nombre_medio || '';
+  const channel = detectChannel(programSource);
+  const rating = calculateRating(programSource, row.id);
+  card.dataset.channel = channel;
+  card.dataset.rating = String(rating);
   
   console.log('📄 Datos de la tarjeta:', {
     id: row.id,
@@ -309,8 +436,64 @@ function renderAlertCard(row){
     transcripcion: card.dataset.transcripcion.substring(0, 50) + '...'
   });
 
-  const hasVideo = !!row.url_video; // url_video en lugar de video_url
+  const hasMedia = !!row.url_video;
   const hasTranscription = !!row.transcripcion;
+  const isAudio = mediaType === 'audio';
+  const mimeType = getMediaMimeType(mediaType, row.url_video);
+  const programDisplayName = extractProgramName(row.nombre_archivo);
+  const sentiment = detectSentiment(row);
+  const sentimentBadge = getSentimentBadgeHtml(sentiment);
+  card.dataset.sentiment = sentiment;
+
+  const mediaSection = hasMedia ? (isAudio ? `
+    <div class="audio-section">
+      <div class="audio-container">
+        <button class="close-button" onclick="event.stopPropagation(); closeExpandedCard(this.closest('.alert-card'))">✕</button>
+        <div class="audio-thumbnail">
+          ${sentimentBadge}
+          <svg class="audio-thumbnail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <div class="audio-thumbnail-name">${escapeHtml(programDisplayName)}</div>
+        </div>
+        <audio class="audio-player" controls preload="metadata" onerror="handleAudioError(this)">
+          <source src="${row.url_video}" type="${mimeType}"/>
+          Tu navegador no soporta audio HTML5.
+        </audio>
+      </div>
+      <div class="audio-links">
+        <div class="link-box">
+          <span>🔗</span>
+          <a href="${row.url_video}" target="_blank">Ver audio original</a>
+        </div>
+        <div class="link-box">
+          <span>🔗</span>
+          <a href="${row.url_video}" target="_blank">Acceso directo</a>
+        </div>
+      </div>
+    </div>` : `
+    <div class="video-section">
+      <div class="video-container">
+        ${sentimentBadge}
+        <button class="close-button" onclick="event.stopPropagation(); closeExpandedCard(this.closest('.alert-card'))">✕</button>
+        <video class="video" controls preload="metadata" crossorigin="anonymous" playsinline onerror="handleVideoError(this)">
+          <source src="${row.url_video}" type="${mimeType}"/>
+          Tu navegador no soporta video HTML5.
+        </video>
+      </div>
+      <div class="video-links">
+        <div class="link-box">
+          <span>🔗</span>
+          <a href="${row.url_video}" target="_blank">Ver video original</a>
+        </div>
+        <div class="link-box">
+          <span>🔗</span>
+          <a href="${row.url_video}" target="_blank">Acceso directo</a>
+        </div>
+      </div>
+    </div>`) : '';
 
   // Generar resumen ejecutivo basado en los datos
   const generateSummary = () => {
@@ -327,27 +510,6 @@ function renderAlertCard(row){
   };
 
   const summary = generateSummary();
-
-  const videoSection = hasVideo ? `
-    <div class="video-section">
-      <div class="video-container">
-        <button class="close-button" onclick="event.stopPropagation(); closeExpandedCard(this.closest('.alert-card'))">✕</button>
-        <video class="video" controls preload="metadata" crossorigin="anonymous" onerror="this.parentElement.innerHTML = '<div style=\\'display:flex;align-items:center;justify-content:center;height:300px;opacity:.7;border:1px dashed var(--danger);color:var(--danger);\\'>Error al cargar video</div>'">
-          <source src="${row.url_video}" type="video/mp4"/>
-          Tu navegador no soporta video HTML5.
-        </video>
-      </div>
-      <div class="video-links">
-        <div class="link-box">
-          <span>🔗</span>
-          <a href="${row.url_video}" target="_blank">Ver video original</a>
-        </div>
-        <div class="link-box">
-          <span>🔗</span>
-          <a href="${row.url_video}" target="_blank">Acceso directo</a>
-        </div>
-      </div>
-    </div>` : '';
 
   const termsSection = terms.length > 0 ? `
     <div class="terms-section">
@@ -397,6 +559,11 @@ function renderAlertCard(row){
       </div>
     </div>` : '';
 
+  const cameraBtnHtml = isAudio ? '' : `
+        <button class="camera-btn" onclick="event.stopPropagation(); captureVideoFrame(this)" title="Capturar frame actual">
+          📷
+        </button>`;
+
   // Crear tooltip con contexto
   const contextText = row.ejecutivo || row.contexto || row.transcripcion || 'Sin contexto disponible';
   const tooltipText = contextText.length > 150 ? contextText.substring(0, 150) + '...' : contextText;
@@ -413,11 +580,8 @@ function renderAlertCard(row){
       </div>
       <div class="alert-time">
         <span>📅</span>
-        <span>${escapeHtml(formatShortDate(row.fecha_detencion || row.fecha_programa))}</span>
-        <button class="camera-btn" onclick="event.stopPropagation(); captureVideoFrame(this)" title="Capturar frame actual">
-          📷
-        </button>
-        <button class="hide-btn" onclick="event.stopPropagation(); hideVideoCard(this)" title="Ocultar video">
+        <span>${escapeHtml(formatShortDate(row.fecha_detencion || row.fecha_programa))}</span>${cameraBtnHtml}
+        <button class="hide-btn" onclick="event.stopPropagation(); hideVideoCard(this)" title="Ocultar contenido">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
             <circle cx="12" cy="12" r="3"></circle>
@@ -426,12 +590,12 @@ function renderAlertCard(row){
       </div>
     </div>
 
-    ${videoSection}
+    ${mediaSection}
 
     <div class="media-info">
       <div class="info-box">
         <div class="info-label">PROGRAMA</div>
-        <div class="info-value">${escapeHtml(extractProgramName(row.nombre_archivo))}</div>
+        <div class="info-value">${escapeHtml(programDisplayName)}</div>
       </div>
       <div class="info-box">
         <div class="info-label">HORARIO</div>
@@ -439,9 +603,9 @@ function renderAlertCard(row){
       </div>
       <div class="info-box">
         <div class="info-label">RATING</div>
-        <div class="info-value rating-value">${formatNumber(calculateRating(row.nombre_archivo || row.nombre_medio))}</div>
+        <div class="info-value rating-value">${formatNumber(rating)}</div>
       </div>
-      <div class="info-box">
+      <div class="info-box info-box--relevancia">
         <div class="info-label">RELEVANCIA</div>
         <div class="info-value">${escapeHtml(fmt(row.relevancia))}</div>
       </div>
@@ -507,13 +671,9 @@ function renderAlertCard(row){
 function toggleCardExpansion(card) {
   const isExpanded = card.classList.contains('expanded');
   
-  // Contraer todas las tarjetas expandidas y detener sus videos
+  // Contraer todas las tarjetas expandidas y detener su reproducción
   document.querySelectorAll('.alert-card.expanded').forEach(expandedCard => {
-    const video = expandedCard.querySelector('.video');
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-    }
+    pauseCardMedia(expandedCard);
     expandedCard.classList.remove('expanded');
   });
   
@@ -526,13 +686,7 @@ function toggleCardExpansion(card) {
 // Función para cerrar tarjeta expandida
 function closeExpandedCard(card) {
   if (card) {
-    // Detener el video si está reproduciéndose
-    const video = card.querySelector('.video');
-    if (video) {
-      video.pause();
-      video.currentTime = 0; // Opcional: volver al inicio
-    }
-
+    pauseCardMedia(card);
     card.classList.remove('expanded');
   }
 }
@@ -541,12 +695,7 @@ function closeExpandedCard(card) {
 function hideVideoCard(button) {
   const card = button.closest('.alert-card');
   if (card) {
-    // Detener el video si está reproduciéndose
-    const video = card.querySelector('.video');
-    if (video) {
-      video.pause();
-      video.currentTime = 0;
-    }
+    pauseCardMedia(card);
 
     // Cerrar si está expandida
     card.classList.remove('expanded');
@@ -716,6 +865,15 @@ function format12Hour(timeString) {
   return timeString;
 }
 
+// Función para limpiar nombres mostrados al usuario
+function cleanDisplayName(name) {
+  if (!name) return name;
+  return name
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Función para extraer el primer término del programa
 function extractProgramName(filename) {
   if (!filename) return 'Sin programa';
@@ -727,16 +885,16 @@ function extractProgramName(filename) {
   const match = nameWithoutExt.match(/^([^0-9]*[A-Za-z][^0-9]*?)(?=\s*\d)/);
   
   if (match) {
-    return match[1].trim();
+    return cleanDisplayName(match[1].trim());
   }
   
   // Si no hay números o están todos pegados a letras, devolver todo hasta el primer espacio seguido de número
   const fallbackMatch = nameWithoutExt.match(/^([A-Za-z][A-Za-z0-9]*\s*[A-Za-z]*)/);
   if (fallbackMatch) {
-    return fallbackMatch[1].trim();
+    return cleanDisplayName(fallbackMatch[1].trim());
   }
   
-  return nameWithoutExt;
+  return cleanDisplayName(nameWithoutExt);
 }
 
 // Función para capitalizar primera letra
@@ -745,28 +903,96 @@ function capitalizeFirst(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-// Función para calcular el rating basado en el programa/canal
-function calculateRating(programName) {
+const TOP_CHANNELS = [
+  { id: 'color', name: 'Color Visión' },
+  { id: 'telesistema', name: 'Telesistema' },
+  { id: 'teleantillas', name: 'Teleantillas' },
+  { id: 'cdn', name: 'CDN' },
+  { id: 'rnn', name: 'RNN' }
+];
+
+const CHANNEL_NAMES = Object.fromEntries(TOP_CHANNELS.map(ch => [ch.id, ch.name]));
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function seededRating(min, max, seed) {
+  const range = max - min + 1;
+  return min + (hashString(String(seed)) % range);
+}
+
+function detectChannel(programName) {
+  const name = (programName || '').toLowerCase();
+  if (name.includes('telesistema')) return 'telesistema';
+  if (name.includes('teleantillas')) return 'teleantillas';
+  if (name.includes('cdn')) return 'cdn';
+  if (name.includes('rnn')) return 'rnn';
+  if (name.includes('color') || name.includes('vision')) return 'color';
+  return '';
+}
+
+// Función para calcular el rating basado en el programa/canal (estable por registro)
+function calculateRating(programName, seed) {
   if (!programName) programName = '';
   const name = programName.toLowerCase();
-  
-  // Panorama y Luna TV: entre 8,434 y 11,454
+  const stableSeed = seed ?? programName;
+
   if (name.includes('panorama') || name.includes('luna')) {
-    return Math.floor(Math.random() * (11454 - 8434 + 1)) + 8434;
+    return seededRating(8434, 11454, stableSeed);
   }
-  
-  // CDN, Teleuniverso, RNN, Cinevision: entre 45,790 y 84,533
+
   if (name.includes('cdn') || name.includes('teleuniverso') || name.includes('rnn') || name.includes('cinevision')) {
-    return Math.floor(Math.random() * (84533 - 45790 + 1)) + 45790;
+    return seededRating(45790, 84533, stableSeed);
   }
-  
-  // Color Vision, RTVD, Teleantillas, Telesistema, Antena: entre 87,332 y 132,413
+
   if (name.includes('color') || name.includes('vision') || name.includes('rtvd') || name.includes('teleantillas') || name.includes('telesistema') || name.includes('antena')) {
-    return Math.floor(Math.random() * (132413 - 87332 + 1)) + 87332;
+    return seededRating(87332, 132413, stableSeed);
   }
-  
-  // Otros: entre 13,432 y 45,334
-  return Math.floor(Math.random() * (45334 - 13432 + 1)) + 13432;
+
+  return seededRating(13432, 45334, stableSeed);
+}
+
+function updateTopRatingSection() {
+  const totals = Object.fromEntries(TOP_CHANNELS.map(ch => [ch.id, 0]));
+  const counts = Object.fromEntries(TOP_CHANNELS.map(ch => [ch.id, 0]));
+
+  allCards.forEach(card => {
+    const channel = card.dataset.channel;
+    const rating = parseInt(card.dataset.rating, 10) || 0;
+    if (!channel || totals[channel] === undefined) return;
+    totals[channel] += rating;
+    counts[channel] += 1;
+  });
+
+  const ranked = TOP_CHANNELS
+    .map(ch => ({ ...ch, total: totals[ch.id], count: counts[ch.id] }))
+    .sort((a, b) => b.total - a.total);
+
+  const container = document.querySelector('.top-rating-container');
+  if (container) {
+    ranked.forEach((ch, index) => {
+      const item = container.querySelector(`[data-channel="${ch.id}"]`);
+      if (!item) return;
+      item.querySelector('.top-rating-position').textContent = index + 1;
+      item.querySelector('.top-rating-value').textContent = formatNumber(ch.total);
+      container.appendChild(item);
+    });
+  }
+
+  const leader = ranked[0];
+  const totalEl = document.getElementById('topRatingTotal');
+  if (totalEl && leader) {
+    totalEl.dataset.channel = leader.id;
+    totalEl.querySelector('.total-label').textContent =
+      `🏆 ${leader.name} - ${leader.count} contenido${leader.count === 1 ? '' : 's'}:`;
+    totalEl.querySelector('.total-value').textContent = formatNumber(leader.total);
+  }
 }
 
 // Función para formatear número con separador de miles
@@ -787,22 +1013,22 @@ function escapeHtml(str){
 
 // Renderiza un lote (append al final)
 function appendBatch(rows){
-  const feed = document.getElementById('feed');
   rows.forEach(r => {
     const card = renderAlertCard(r);
-    feed.appendChild(card);
     allCards.push(card);
     console.log('📄 Tarjeta agregada:', r.id, 'Total allCards:', allCards.length);
   });
+  applyAllFilters();
+  updateTopRatingSection();
 }
 
 // Prepend (para inserciones en tiempo real)
 function prependOne(row){
-  const feed = document.getElementById('feed');
   const el = renderAlertCard(row);
-  feed.insertBefore(el, feed.firstChild);
   allCards.unshift(el);
   console.log('🆕 Nueva alerta agregada al inicio:', row.id, 'Total allCards:', allCards.length);
+  applyAllFilters();
+  updateTopRatingSection();
 }
 
 // ====== Acciones ======
@@ -821,6 +1047,7 @@ async function loadFirstPage(){
     
     if (rows.length > 0) {
       appendBatch(rows);
+      setClientMode(currentClientMode, { silent: true });
       offset += rows.length;
       showToast(`✅ Cargados ${rows.length} registros`);
       console.log('📊 Total de tarjetas en allCards:', allCards.length);
@@ -934,36 +1161,83 @@ function enableRealtime(){
 // ====== Filtros ======
 let currentFilter = null;
 let currentChannelFilter = null;
+let currentMediaTypeFilter = 'all';
+let currentClientMode = 'edesur';
 let allCards = [];
 let sortOrder = 'desc'; // 'desc' = más recientes primero, 'asc' = más antiguos primero
+
+function cardMatchesFilters(card) {
+  if (currentMediaTypeFilter !== 'all' && card.dataset.mediatype !== currentMediaTypeFilter) {
+    return false;
+  }
+
+  if (currentChannelFilter) {
+    if (card.dataset.channel !== currentChannelFilter) {
+      return false;
+    }
+  }
+
+  if (currentFilter) {
+    const termino = (card.dataset.termino || '').toLowerCase();
+    const ejecutivo = (card.dataset.ejecutivo || '').toLowerCase();
+    const contexto = (card.dataset.contexto || '').toLowerCase();
+    const transcripcion = (card.dataset.transcripcion || '').toLowerCase();
+    const filter = currentFilter.toLowerCase();
+
+    if (!termino.includes(filter) &&
+        !ejecutivo.includes(filter) &&
+        !contexto.includes(filter) &&
+        !transcripcion.includes(filter)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function applyAllFilters() {
+  const feed = document.getElementById('feed');
+  if (!feed) return;
+
+  // Quitar tarjetas del feed sin destruirlas (preserva thumbnails y estado del video)
+  allCards.forEach(card => {
+    if (card.parentNode === feed) {
+      feed.removeChild(card);
+    }
+  });
+
+  const visibleCards = allCards.filter(cardMatchesFilters);
+  visibleCards.forEach(card => feed.appendChild(card));
+  reorganizeCards();
+
+  console.log('📊 Tarjetas visibles después de filtros:', visibleCards.length);
+  return visibleCards.length;
+}
+
+function getMediaTypeLabel(type) {
+  if (type === 'video') return 'videos';
+  if (type === 'audio') return 'audios';
+  return 'contenidos';
+}
 
 // Función para filtrar por canal (desde el top rating)
 function filterByChannel(channel) {
   console.log('📺 Filtrando por canal:', channel);
   
-  // Si ya está filtrado por el mismo canal, quitar el filtro
   if (currentChannelFilter === channel) {
     currentChannelFilter = null;
-    // Quitar clase activa de todos los items del top rating
     document.querySelectorAll('.top-rating-item').forEach(item => {
       item.classList.remove('active');
     });
     document.getElementById('topRatingTotal')?.classList.remove('active');
     
-    // Mostrar todas las tarjetas
-    const feed = document.getElementById('feed');
-    feed.innerHTML = '';
-    allCards.forEach(card => {
-      feed.appendChild(card);
-    });
-    
-    showToast(`Mostrando todos los videos (${allCards.length})`);
+    const visibleCount = applyAllFilters();
+    showToast(`Mostrando todos los contenidos (${visibleCount})`);
     return;
   }
   
   currentChannelFilter = channel;
   
-  // Actualizar estado visual de los items del top rating
   document.querySelectorAll('.top-rating-item').forEach(item => {
     item.classList.remove('active');
     if (item.dataset.channel === channel) {
@@ -971,7 +1245,6 @@ function filterByChannel(channel) {
     }
   });
   
-  // Actualizar el total si coincide
   const totalEl = document.getElementById('topRatingTotal');
   if (totalEl) {
     if (totalEl.dataset.channel === channel) {
@@ -981,94 +1254,110 @@ function filterByChannel(channel) {
     }
   }
   
-  // Filtrar tarjetas por canal
-  const feed = document.getElementById('feed');
-  feed.innerHTML = '';
+  const visibleCount = applyAllFilters();
   
-  let visibleCount = 0;
-  allCards.forEach(card => {
-    const nombreArchivo = (card.dataset.nombrearchivo || '').toLowerCase();
-    const nombreMedio = (card.dataset.nombremedio || '').toLowerCase();
-    const programa = nombreArchivo + ' ' + nombreMedio;
-    
-    if (programa.includes(channel.toLowerCase())) {
-      feed.appendChild(card);
-      visibleCount++;
-    }
-  });
-  
-  // Mapeo de nombres de canales para mostrar
-  const channelNames = {
-    'color': 'Color Visión',
-    'telesistema': 'Telesistema',
-    'teleantillas': 'Teleantillas',
-    'cdn': 'CDN',
-    'rnn': 'RNN'
-  };
-  
-  const channelDisplayName = channelNames[channel] || channel;
+  const channelDisplayName = CHANNEL_NAMES[channel] || channel;
   showToast(`📺 ${channelDisplayName}: ${visibleCount} contenidos`);
   console.log('📺 Contenidos encontrados para', channelDisplayName + ':', visibleCount);
 }
 
-// Función para filtrar tarjetas
-function filterCards(filter) {
+function filterByMediaType(type) {
+  if (!type || type === currentMediaTypeFilter) return;
+
+  console.log('🎛️ Filtrando por tipo de medio:', type);
+  currentMediaTypeFilter = type;
+
+  document.querySelectorAll('.media-type-tag').forEach(tag => {
+    tag.classList.toggle('active', tag.dataset.mediaType === type);
+  });
+
+  const visibleCount = applyAllFilters();
+  const label = getMediaTypeLabel(type === 'all' ? null : type);
+  showToast(type === 'all'
+    ? `Mostrando todos los contenidos (${visibleCount})`
+    : `Mostrando solo ${label} (${visibleCount})`);
+}
+
+const CLIENT_DEFAULT_FILTERS = {
+  edesur: 'edesur',
+  intrant: 'morrison'
+};
+
+function clearChannelFilter() {
+  currentChannelFilter = null;
+  document.querySelectorAll('.top-rating-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  document.getElementById('topRatingTotal')?.classList.remove('active');
+}
+
+function clearAllFilters() {
+  clearChannelFilter();
+
+  currentMediaTypeFilter = 'all';
+  document.querySelectorAll('.media-type-tag').forEach(tag => {
+    tag.classList.toggle('active', tag.dataset.mediaType === 'all');
+  });
+
+  currentClientMode = 'edesur';
+  const filterTagsEl = document.getElementById('filterTags');
+  if (filterTagsEl) {
+    filterTagsEl.dataset.clientMode = 'edesur';
+  }
+  document.querySelectorAll('.client-mode-tag').forEach(tag => {
+    tag.classList.toggle('active', tag.dataset.client === 'edesur');
+  });
+
+  filterCards(CLIENT_DEFAULT_FILTERS.edesur, { silent: true });
+  showToast('Filtros restablecidos');
+}
+
+function setClientMode(mode, options = {}) {
+  if (mode !== 'edesur' && mode !== 'intrant') return;
+
+  const switched = currentClientMode !== mode;
+  currentClientMode = mode;
+
+  const filterTagsEl = document.getElementById('filterTags');
+  if (filterTagsEl) {
+    filterTagsEl.dataset.clientMode = mode;
+  }
+
+  document.querySelectorAll('.client-mode-tag').forEach(tag => {
+    tag.classList.toggle('active', tag.dataset.client === mode);
+  });
+
+  const defaultFilter = CLIENT_DEFAULT_FILTERS[mode];
+  const nextFilter = switched ? defaultFilter : (currentFilter || defaultFilter);
+  filterCards(nextFilter, { silent: options.silent || !switched });
+
+  if (!options.silent && switched) {
+    showToast(`Modo ${mode === 'edesur' ? 'EDESUR' : 'INTRANT'} activo`);
+  }
+}
+
+function filterCards(filter, options = {}) {
+  if (!filter) return;
+
   console.log('🔍 Filtrando por:', filter);
   console.log('📊 Total de tarjetas disponibles:', allCards.length);
   currentFilter = filter;
   
-  // Actualizar estado visual de los tags
   document.querySelectorAll('.filter-tag').forEach(tag => {
     tag.classList.remove('active');
   });
   
-  if (filter) {
-    const activeTag = document.querySelector(`[data-filter="${filter}"]`);
-    if (activeTag) {
-      activeTag.classList.add('active');
-    }
+  const activeTag = document.querySelector(
+    `.filter-tag[data-filter="${filter}"][data-client="${currentClientMode}"]`
+  );
+  if (activeTag) {
+    activeTag.classList.add('active');
   }
   
-  // Filtrar tarjetas
-  let visibleCount = 0;
-  const visibleCards = [];
-  
-  allCards.forEach(card => {
-    const cardData = card.dataset;
-    const termino = (cardData.termino || '').toLowerCase();
-    const ejecutivo = (cardData.ejecutivo || '').toLowerCase();
-    const contexto = (cardData.contexto || '').toLowerCase();
-    const transcripcion = (cardData.transcripcion || '').toLowerCase();
-    
-    const shouldShow = !filter || 
-      termino.includes(filter.toLowerCase()) ||
-      ejecutivo.includes(filter.toLowerCase()) ||
-      contexto.includes(filter.toLowerCase()) ||
-      transcripcion.includes(filter.toLowerCase());
-    
-    if (shouldShow) {
-      visibleCards.push(card);
-      visibleCount++;
-    }
-    
-    console.log(`📄 Tarjeta ${cardData.id}: ${shouldShow ? 'visible' : 'oculta'}`, {
-      termino, ejecutivo, contexto, transcripcion, filter
-    });
-  });
-  
-  // Reorganizar el grid para mostrar solo las tarjetas visibles
-  const feed = document.getElementById('feed');
-  
-  // Limpiar el feed
-  feed.innerHTML = '';
-  
-  // Agregar solo las tarjetas visibles
-  visibleCards.forEach(card => {
-    feed.appendChild(card);
-  });
-  
-  console.log('📊 Tarjetas visibles después del filtro:', visibleCount);
-  showToast(filter ? `Filtrado por: ${filter} (${visibleCount} videos)` : `Mostrando todos los videos (${allCards.length})`);
+  const visibleCount = applyAllFilters();
+  if (!options.silent) {
+    showToast(`Filtrado por: ${filter} (${visibleCount} contenidos)`);
+  }
 }
 
 // Función para cambiar el ordenamiento
@@ -1196,13 +1485,38 @@ document.addEventListener('DOMContentLoaded', () => {
     tag.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (tag.dataset.client !== currentClientMode) return;
       const filter = tag.dataset.filter;
       console.log('🏷️ Tag clickeado:', filter, 'Filtro actual:', currentFilter);
-      console.log('📊 Total de tarjetas antes del filtro:', allCards.length);
-      console.log('🏷️ Tags encontrados:', document.querySelectorAll('.filter-tag').length);
-      filterCards(currentFilter === filter ? null : filter);
+      filterCards(filter);
     });
   });
+
+  document.querySelectorAll('.client-mode-tag').forEach(tag => {
+    tag.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setClientMode(tag.dataset.client);
+    });
+  });
+
+  document.querySelectorAll('.media-type-tag').forEach(tag => {
+    tag.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const mediaType = tag.dataset.mediaType;
+      filterByMediaType(mediaType);
+    });
+  });
+
+  const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+  if (btnLimpiarFiltros) {
+    btnLimpiarFiltros.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearAllFilters();
+    });
+  }
   
   // Agregar listener al switch de ordenamiento
   const sortToggle = document.getElementById('sortToggle');
@@ -1252,6 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('🏷️ Total de tags de filtro configurados:', document.querySelectorAll('.filter-tag').length);
 
   enableRealtime();
+  setClientMode('edesur', { silent: true });
   loadFirstPage();
 });
 

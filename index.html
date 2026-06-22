@@ -6,22 +6,19 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Sistema de Alerta de Medios - EDESUR</title>
+  <title>Sistema de Alerta de Medios - FGJ Multimedios</title>
+  <link rel="icon" type="image/png" href="assets/fgj-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=3.0" />
+  <link rel="stylesheet" href="styles.css?v=4.2" />
 </head>
 <body>
   <header class="app-header">
     <div class="header-top">
       <div class="logo-section">
-        <div class="edesur-logo">
-          <div class="logo-text">
-            <span class="logo-ede">ede</span><span class="logo-sur">sur</span><span class="logo-reg">®</span>
-          </div>
-          <div class="logo-swoosh"></div>
-          <div class="logo-subtitle">Edesur Dominicana, S. A.</div>
+        <div class="app-logo">
+          <img src="assets/fgj-logo.png" alt="FGJ Multimedios" class="app-logo-img" />
         </div>
         <h1>Sistema de Alerta de Medios</h1>
       </div>
@@ -53,15 +50,34 @@
         <span>Sistema activo y monitoreando</span>
       </div>
       
-      <div class="filter-tags">
-        <span class="filter-tag" data-filter="edesur">Edesur</span>
-        <span class="filter-tag" data-filter="apagones">Apagones</span>
-        <span class="filter-tag" data-filter="apagon">Apagón</span>
-        <span class="filter-tag" data-filter="punta-catalina">Punta Catalina</span>
-        <span class="filter-tag" data-filter="jose-actis">José Actis</span>
-        <span class="filter-tag" data-filter="edenorte">Edenorte</span>
-        <span class="filter-tag" data-filter="pacto-electrico">Pacto Eléctrico</span>
-        <span class="filter-tag" data-filter="marranzini">Marranzini</span>
+      <div class="filter-tags" id="filterTags" data-client-mode="edesur">
+        <div class="client-switch-container">
+          <span class="client-mode-tag active" data-client="edesur">EDESUR</span>
+          <span class="client-mode-tag" data-client="intrant">INTRANT</span>
+        </div>
+
+        <div class="term-filter-tags">
+          <span class="filter-tag active" data-client="edesur" data-filter="edesur">Edesur</span>
+          <span class="filter-tag" data-client="edesur" data-filter="apagones">Apagones</span>
+          <span class="filter-tag" data-client="edesur" data-filter="apagon">Apagón</span>
+          <span class="filter-tag" data-client="edesur" data-filter="punta-catalina">Punta Catalina</span>
+          <span class="filter-tag" data-client="edesur" data-filter="jose-actis">José Actis</span>
+          <span class="filter-tag" data-client="edesur" data-filter="edenorte">Edenorte</span>
+          <span class="filter-tag" data-client="edesur" data-filter="pacto-electrico">Pacto Eléctrico</span>
+          <span class="filter-tag" data-client="edesur" data-filter="marranzini">Marranzini</span>
+          <span class="filter-tag" data-client="intrant" data-filter="morrison">Morrison</span>
+          <span class="filter-tag" data-client="intrant" data-filter="intrant">Intrant</span>
+          <span class="filter-tag" data-client="intrant" data-filter="digesett">Digesett</span>
+          <span class="filter-tag" data-client="intrant" data-filter="milton morrison">Milton Morrison</span>
+        </div>
+
+        <div class="media-type-filter">
+          <span class="media-type-tag active" data-media-type="all">Todos</span>
+          <span class="media-type-tag" data-media-type="video">📺 Solo videos</span>
+          <span class="media-type-tag" data-media-type="audio">🎙️ Solo audios</span>
+        </div>
+
+        <button type="button" class="btn btn-clear-filters" id="btnLimpiarFiltros">Limpiar filtros</button>
         
         <!-- Switch para ordenamiento -->
         <div class="sort-switch-container">
@@ -90,32 +106,32 @@
         <div class="top-rating-item" data-channel="color" onclick="filterByChannel('color')">
           <span class="top-rating-position">1</span>
           <span class="top-rating-name">Color Visión</span>
-          <span class="top-rating-value">128,547</span>
+          <span class="top-rating-value">0</span>
         </div>
         <div class="top-rating-item" data-channel="telesistema" onclick="filterByChannel('telesistema')">
           <span class="top-rating-position">2</span>
           <span class="top-rating-name">Telesistema</span>
-          <span class="top-rating-value">115,823</span>
+          <span class="top-rating-value">0</span>
         </div>
         <div class="top-rating-item" data-channel="teleantillas" onclick="filterByChannel('teleantillas')">
           <span class="top-rating-position">3</span>
           <span class="top-rating-name">Teleantillas</span>
-          <span class="top-rating-value">98,432</span>
+          <span class="top-rating-value">0</span>
         </div>
         <div class="top-rating-item" data-channel="cdn" onclick="filterByChannel('cdn')">
           <span class="top-rating-position">4</span>
           <span class="top-rating-name">CDN</span>
-          <span class="top-rating-value">76,291</span>
+          <span class="top-rating-value">0</span>
         </div>
         <div class="top-rating-item" data-channel="rnn" onclick="filterByChannel('rnn')">
           <span class="top-rating-position">5</span>
           <span class="top-rating-name">RNN</span>
-          <span class="top-rating-value">62,845</span>
+          <span class="top-rating-value">0</span>
         </div>
       </div>
       <div class="top-rating-total" id="topRatingTotal" data-channel="color" onclick="filterByChannel('color')" style="cursor:pointer">
-        <span class="total-label">🏆 Color Visión - Total contenidos:</span>
-        <span class="total-value">481,938</span>
+        <span class="total-label">🏆 — Total contenidos:</span>
+        <span class="total-value">0</span>
       </div>
     </section>
 
@@ -131,6 +147,6 @@
     window.SUPABASE_URL = "https://sfvbcprhfmwglqpyyfxz.supabase.co";
     window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdmJjcHJoZm13Z2xxcHl5Znh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5MTA0MTMsImV4cCI6MjA3MjQ4NjQxM30.PDxciEIhBhHJUGw2iXkEkiECfrVZ32sYl9FiTKsageU";
   </script>
-  <script src="script.js?v=3.0"></script>
+  <script src="script.js?v=4.2"></script>
 </body>
 </html>
