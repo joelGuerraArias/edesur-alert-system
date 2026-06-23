@@ -77,8 +77,8 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
 }
 .client-mode-tag{
   background:transparent;border:1px solid transparent;color:var(--muted);
-  padding:7px 16px;border-radius:16px;font-size:0.8rem;font-weight:700;
-  cursor:pointer;transition:all 0.3s ease;min-width:88px;text-align:center
+  padding:7px 12px;border-radius:16px;font-size:0.72rem;font-weight:700;
+  cursor:pointer;transition:all 0.3s ease;min-width:72px;text-align:center
 }
 .client-mode-tag:hover:not(.active){
   color:var(--text)
@@ -90,8 +90,9 @@ h1,h2,h3{margin:0 0 .5rem 0;font-family:'Montserrat',system-ui,sans-serif}
 .term-filter-tags{
   display:contents
 }
-.filter-tags[data-client-mode="edesur"] .filter-tag[data-client="intrant"],
-.filter-tags[data-client-mode="intrant"] .filter-tag[data-client="edesur"]{
+.filter-tags[data-client-mode="edesur"] .filter-tag:not([data-client="edesur"]),
+.filter-tags[data-client-mode="intrant"] .filter-tag:not([data-client="intrant"]),
+.filter-tags[data-client-mode="presidencia"] .filter-tag:not([data-client="presidencia"]){
   display:none
 }
 .filter-tag{

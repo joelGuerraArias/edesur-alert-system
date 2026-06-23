@@ -1280,8 +1280,17 @@ function filterByMediaType(type) {
 
 const CLIENT_DEFAULT_FILTERS = {
   edesur: 'edesur',
-  intrant: 'morrison'
+  intrant: 'morrison',
+  presidencia: 'abinader'
 };
+
+const CLIENT_MODE_LABELS = {
+  edesur: 'EDESUR',
+  intrant: 'INTRANT',
+  presidencia: 'PRESIDENCIA'
+};
+
+const VALID_CLIENT_MODES = Object.keys(CLIENT_DEFAULT_FILTERS);
 
 function clearChannelFilter() {
   currentChannelFilter = null;
@@ -1313,7 +1322,7 @@ function clearAllFilters() {
 }
 
 function setClientMode(mode, options = {}) {
-  if (mode !== 'edesur' && mode !== 'intrant') return;
+  if (!VALID_CLIENT_MODES.includes(mode)) return;
 
   const switched = currentClientMode !== mode;
   currentClientMode = mode;
@@ -1332,7 +1341,7 @@ function setClientMode(mode, options = {}) {
   filterCards(nextFilter, { silent: options.silent || !switched });
 
   if (!options.silent && switched) {
-    showToast(`Modo ${mode === 'edesur' ? 'EDESUR' : 'INTRANT'} activo`);
+    showToast(`Modo ${CLIENT_MODE_LABELS[mode]} activo`);
   }
 }
 
