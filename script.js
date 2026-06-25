@@ -440,7 +440,9 @@ function renderAlertCard(row){
   const hasTranscription = !!row.transcripcion;
   const isAudio = mediaType === 'audio';
   const mimeType = getMediaMimeType(mediaType, row.url_video);
-  const programDisplayName = extractProgramName(row.nombre_archivo);
+  const programDisplayName = formatMediaName(
+    extractProgramName(row.nombre_archivo || row.nombre_medio || '')
+  );
   const sentiment = detectSentiment(row);
   const sentimentBadge = getSentimentBadgeHtml(sentiment);
   card.dataset.sentiment = sentiment;
@@ -865,13 +867,89 @@ function format12Hour(timeString) {
   return timeString;
 }
 
-// Función para limpiar nombres mostrados al usuario
+// Función para limpiar y capitalizar nombres de medios/programas
+const MEDIA_NAME_ALIASES = {
+  'color vision': 'Color Visión',
+  'cdn': 'CDN',
+  'cdn37': 'CDN 37',
+  'cdn 37': 'CDN 37',
+  'antena': 'Antena',
+  'telecentro': 'Telecentro',
+  'ritmo': 'Ritmo',
+  'super q': 'Super Q',
+  'superq': 'Super Q',
+  'rumba': 'Rumba',
+  'telesistema': 'Telesistema',
+  'teleantillas': 'Teleantillas',
+  'tele antillas': 'Teleantillas',
+  'rnn': 'RNN',
+  'rtvd': 'RTVD',
+  'teleuniverso': 'Teleuniverso',
+  'cinevision': 'Cinevisión',
+  'cine vision': 'Cinevisión',
+  'panorama': 'Panorama',
+  'telecentro 13': 'Telecentro 13',
+  'sin programa': 'Sin programa',
+  'sin medio': 'Sin medio'
+};
+
+const MEDIA_WORD_REPLACEMENTS = [
+  [/color\s*visi[oó]n/gi, 'Color Visión'],
+  [/cdn\s*37/gi, 'CDN 37'],
+  [/super\s*q/gi, 'Super Q'],
+  [/tele\s*antillas/gi, 'Teleantillas'],
+  [/tele\s*centro/gi, 'Telecentro'],
+  [/cine\s*visi[oó]n/gi, 'Cinevisión'],
+  [/tele\s*sistema/gi, 'Telesistema'],
+  [/tele\s*universo/gi, 'Teleuniverso']
+];
+
+const MEDIA_ACRONYMS = new Set(['CDN', 'RNN', 'RTVD', 'Q', 'PM', 'PRM']);
+
+function normalizeRawName(name) {
+  return (name ?? '').toString().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function formatMediaWord(word) {
+  if (!word) return word;
+
+  const bare = word.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (MEDIA_NAME_ALIASES[bare]) return MEDIA_NAME_ALIASES[bare];
+
+  const cdnMatch = word.match(/^cdn(\d+)$/i);
+  if (cdnMatch) return `CDN ${cdnMatch[1]}`;
+
+  const upper = word.toUpperCase();
+  if (MEDIA_ACRONYMS.has(upper)) return upper;
+
+  if (/^\d+$/.test(word)) return word;
+
+  if (/[A-Z]/.test(word) && word !== word.toLowerCase()) return word;
+
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+function formatMediaName(name) {
+  if (!name) return '';
+
+  let text = normalizeRawName(name);
+  if (!text) return text;
+
+  const lookupKey = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (MEDIA_NAME_ALIASES[lookupKey]) return MEDIA_NAME_ALIASES[lookupKey];
+
+  MEDIA_WORD_REPLACEMENTS.forEach(([pattern, replacement]) => {
+    text = text.replace(pattern, replacement);
+  });
+
+  return text
+    .split(/\s+/)
+    .map(formatMediaWord)
+    .join(' ');
+}
+
 function cleanDisplayName(name) {
-  if (!name) return name;
-  return name
-    .replace(/_/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return formatMediaName(name);
 }
 
 // Función para extraer el primer término del programa
@@ -908,7 +986,12 @@ const TOP_CHANNELS = [
   { id: 'telesistema', name: 'Telesistema' },
   { id: 'teleantillas', name: 'Teleantillas' },
   { id: 'cdn', name: 'CDN' },
-  { id: 'rnn', name: 'RNN' }
+  { id: 'rnn', name: 'RNN' },
+  { id: 'telecentro', name: 'Telecentro' },
+  { id: 'antena', name: 'Antena' },
+  { id: 'ritmo', name: 'Ritmo' },
+  { id: 'superq', name: 'Super Q' },
+  { id: 'rumba', name: 'Rumba' }
 ];
 
 const CHANNEL_NAMES = Object.fromEntries(TOP_CHANNELS.map(ch => [ch.id, ch.name]));
@@ -931,8 +1014,13 @@ function detectChannel(programName) {
   const name = (programName || '').toLowerCase();
   if (name.includes('telesistema')) return 'telesistema';
   if (name.includes('teleantillas')) return 'teleantillas';
+  if (name.includes('telecentro')) return 'telecentro';
   if (name.includes('cdn')) return 'cdn';
   if (name.includes('rnn')) return 'rnn';
+  if (name.includes('antena')) return 'antena';
+  if (name.includes('ritmo')) return 'ritmo';
+  if (name.includes('super q') || name.includes('superq')) return 'superq';
+  if (name.includes('rumba')) return 'rumba';
   if (name.includes('color') || name.includes('vision')) return 'color';
   return '';
 }

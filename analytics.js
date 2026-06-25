@@ -5,7 +5,12 @@ const ANALYTICS_CHANNEL_META = [
   { id: 'telesistema', name: 'Telesistema', color: '#3b82f6' },
   { id: 'teleantillas', name: 'Teleantillas', color: '#22c55e' },
   { id: 'cdn', name: 'CDN', color: '#a855f7' },
-  { id: 'rnn', name: 'RNN', color: '#ef4444' }
+  { id: 'rnn', name: 'RNN', color: '#ef4444' },
+  { id: 'telecentro', name: 'Telecentro', color: '#06b6d4' },
+  { id: 'antena', name: 'Antena', color: '#eab308' },
+  { id: 'ritmo', name: 'Ritmo', color: '#ec4899' },
+  { id: 'superq', name: 'Super Q', color: '#8b5cf6' },
+  { id: 'rumba', name: 'Rumba', color: '#14b8a6' }
 ];
 
 let analyticsActive = false;
@@ -88,12 +93,11 @@ function pct(part, total) {
 function getProgramLabel(card) {
   const archivo = card.dataset.nombrearchivo || '';
   const medio = card.dataset.nombremedio || '';
-  const raw = archivo || medio;
-  if (!raw) return 'Sin programa';
-  if (typeof extractProgramName === 'function' && archivo) {
-    return extractProgramName(archivo) || raw;
+  if (archivo && typeof extractProgramName === 'function') {
+    return formatMediaName(extractProgramName(archivo));
   }
-  return raw;
+  if (medio) return formatMediaName(medio);
+  return 'Sin programa';
 }
 
 function buildTimeline(cards) {
@@ -168,8 +172,9 @@ function computeAnalytics(cards) {
     const program = getProgramLabel(card);
     stats.programs[program] = (stats.programs[program] || 0) + 1;
 
-    const medio = card.dataset.nombremedio || 'Sin medio';
-    stats.medios[medio] = (stats.medios[medio] || 0) + 1;
+    const medio = card.dataset.nombremedio || 'sin medio';
+    const medioKey = medio.toLowerCase();
+    stats.medios[medioKey] = (stats.medios[medioKey] || 0) + 1;
   });
 
   const channelRanking = Object.values(stats.channels)
@@ -395,7 +400,7 @@ function renderAnalyticsDashboard() {
           ${s.topMedios.map(([name, count], i) => `
             <div class="analytics-rank-item">
               <span class="analytics-rank-item__pos">${i + 1}</span>
-              <span class="analytics-rank-item__name">${escapeHtml(name === 'sin medio' ? 'Sin medio' : name)}</span>
+              <span class="analytics-rank-item__name">${escapeHtml(formatMediaName(name === 'sin medio' ? 'Sin medio' : name))}</span>
               <span class="analytics-rank-item__value">${count}</span>
             </div>`).join('')}
         </div>
