@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Sistema de Alerta de Medios - FGJ Multimedios</title>
+  <title>Sistema de Alerta de Medios - EDESUR</title>
   <link rel="icon" type="image/png" href="assets/fgj-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,28 +37,22 @@
         <button class="btn" id="btnDrive">☁️ Drive</button>
       </div>
     </div>
-    
+
     <div class="alert-banner">
       <span class="alert-text">COINCIDENCIA DETECTADA</span>
     </div>
-    
+
     <div class="header-main">
-      <h2>Sistema de Alerta de Medios</h2>
+      <h2>Sistema de Alerta de Medios — EDESUR</h2>
       <p class="subtitle">Monitoreo inteligente de contenido en tiempo real</p>
       <div class="status-indicator">
         <span class="status-dot"></span>
         <span>Sistema activo y monitoreando</span>
       </div>
-      
-      <div class="filter-tags" id="filterTags" data-client-mode="edesur">
-        <div class="client-switch-container">
-          <span class="client-mode-tag active" data-client="edesur">EDESUR</span>
-          <span class="client-mode-tag" data-client="intrant">INTRANT</span>
-          <span class="client-mode-tag" data-client="presidencia">PRESIDENCIA</span>
-        </div>
 
+      <div class="filter-tags" id="filterTags" data-client-mode="edesur">
         <div class="term-filter-tags">
-          <span class="filter-tag active" data-client="edesur" data-filter="edesur">Edesur</span>
+          <span class="filter-tag" data-client="edesur" data-filter="edesur">Edesur</span>
           <span class="filter-tag" data-client="edesur" data-filter="apagones">Apagones</span>
           <span class="filter-tag" data-client="edesur" data-filter="apagon">Apagón</span>
           <span class="filter-tag" data-client="edesur" data-filter="punta-catalina">Punta Catalina</span>
@@ -66,13 +60,6 @@
           <span class="filter-tag" data-client="edesur" data-filter="edenorte">Edenorte</span>
           <span class="filter-tag" data-client="edesur" data-filter="pacto-electrico">Pacto Eléctrico</span>
           <span class="filter-tag" data-client="edesur" data-filter="marranzini">Marranzini</span>
-          <span class="filter-tag" data-client="intrant" data-filter="morrison">Morrison</span>
-          <span class="filter-tag" data-client="intrant" data-filter="intrant">Intrant</span>
-          <span class="filter-tag" data-client="intrant" data-filter="digesett">Digesett</span>
-          <span class="filter-tag" data-client="intrant" data-filter="milton morrison">Milton Morrison</span>
-          <span class="filter-tag" data-client="presidencia" data-filter="abinader">Abinader</span>
-          <span class="filter-tag" data-client="presidencia" data-filter="prm">PRM</span>
-          <span class="filter-tag" data-client="presidencia" data-filter="luis abinader">Luis Abinader</span>
         </div>
 
         <div class="media-type-filter">
@@ -82,8 +69,7 @@
         </div>
 
         <button type="button" class="btn btn-clear-filters" id="btnLimpiarFiltros">Limpiar filtros</button>
-        
-        <!-- Switch para ordenamiento -->
+
         <div class="sort-switch-container">
           <span class="sort-label">Más antiguos</span>
           <label class="sort-switch">
@@ -92,8 +78,7 @@
           </label>
           <span class="sort-label">Más recientes</span>
         </div>
-        
-        <!-- Botón alternativo para ordenamiento (fallback) -->
+
         <button class="sort-button" id="sortButton" style="display: none;">
           <span class="sort-icon">📅</span>
           <span class="sort-text">Más recientes</span>
@@ -109,7 +94,6 @@
 
   <main class="container">
     <div id="viewAlertas" class="app-view app-view--active">
-    <!-- Top Rating Section -->
     <section class="top-rating-section">
       <h3 class="top-rating-title">📊 Locales con mayor rating de los últimos 7 días</h3>
       <div class="top-rating-container">
@@ -145,7 +129,6 @@
       </div>
     </section>
 
-    <!-- FEED: aquí se renderizan todas las tarjetas, una debajo de otra -->
     <section id="feed" class="feed"></section>
     </div>
 
@@ -163,11 +146,11 @@
 
   <div id="toast" class="toast" aria-live="polite"></div>
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     window.SUPABASE_URL = "https://sfvbcprhfmwglqpyyfxz.supabase.co";
     window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdmJjcHJoZm13Z2xxcHl5Znh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5MTA0MTMsImV4cCI6MjA3MjQ4NjQxM30.PDxciEIhBhHJUGw2iXkEkiECfrVZ32sYl9FiTKsageU";
+    window.FIXED_CLIENT_MODE = "edesur";
   </script>
   <script src="script.js?v=4.7"></script>
   <script src="analytics.js?v=4.8"></script>

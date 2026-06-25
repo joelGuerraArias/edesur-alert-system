@@ -18,3 +18,18 @@
 
 [build.environment]
   NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/edesur"
+  to = "/edesur.html"
+  status = 200
+
+[[redirects]]
+  from = "/intrant"
+  to = "/intrant.html"
+  status = 200
+
+[[redirects]]
+  from = "/presidencia"
+  to = "/presidencia.html"
+  status = 200

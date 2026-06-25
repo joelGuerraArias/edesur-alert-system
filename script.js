@@ -961,8 +961,9 @@ function calculateRating(programName, seed) {
 function updateTopRatingSection() {
   const totals = Object.fromEntries(TOP_CHANNELS.map(ch => [ch.id, 0]));
   const counts = Object.fromEntries(TOP_CHANNELS.map(ch => [ch.id, 0]));
+  const cards = typeof getClientScopedCards === 'function' ? getClientScopedCards() : allCards;
 
-  allCards.forEach(card => {
+  cards.forEach(card => {
     const channel = card.dataset.channel;
     const rating = parseInt(card.dataset.rating, 10) || 0;
     if (!channel || totals[channel] === undefined) return;
@@ -1020,6 +1021,7 @@ function appendBatch(rows){
   });
   applyAllFilters();
   updateTopRatingSection();
+  if (typeof refreshAnalytics === 'function') refreshAnalytics();
 }
 
 // Prepend (para inserciones en tiempo real)
@@ -1029,6 +1031,7 @@ function prependOne(row){
   console.log('🆕 Nueva alerta agregada al inicio:', row.id, 'Total allCards:', allCards.length);
   applyAllFilters();
   updateTopRatingSection();
+  if (typeof refreshAnalytics === 'function') refreshAnalytics();
 }
 
 // ====== Acciones ======
@@ -1177,6 +1180,12 @@ function cardMatchesFilters(card) {
     }
   }
 
+  if (typeof FIXED_CLIENT_MODE !== 'undefined' && FIXED_CLIENT_MODE) {
+    if (!cardMatchesAnyClientTerm(card, FIXED_CLIENT_MODE)) {
+      return false;
+    }
+  }
+
   if (currentFilter) {
     const termino = (card.dataset.termino || '').toLowerCase();
     const ejecutivo = (card.dataset.ejecutivo || '').toLowerCase();
@@ -1291,6 +1300,84 @@ const CLIENT_MODE_LABELS = {
 };
 
 const VALID_CLIENT_MODES = Object.keys(CLIENT_DEFAULT_FILTERS);
+const FIXED_CLIENT_MODE = (typeof window.FIXED_CLIENT_MODE === 'string' && VALID_CLIENT_MODES.includes(window.FIXED_CLIENT_MODE))
+  ? window.FIXED_CLIENT_MODE
+  : null;
+
+function getDefaultClientMode() {
+  return FIXED_CLIENT_MODE || 'edesur';
+}
+
+function initFixedClientPage() {
+  if (!FIXED_CLIENT_MODE) return;
+
+  document.querySelector('.client-switch-container')?.remove();
+
+  document.querySelectorAll('.filter-tag').forEach(tag => {
+    if (tag.dataset.client !== FIXED_CLIENT_MODE) {
+      tag.remove();
+    }
+  });
+
+  const filterTagsEl = document.getElementById('filterTags');
+  if (filterTagsEl) {
+    filterTagsEl.dataset.clientMode = FIXED_CLIENT_MODE;
+  }
+}
+
+const CLIENT_FILTER_TERMS_FALLBACK = {
+  edesur: ['edesur', 'apagones', 'apagon', 'punta-catalina', 'jose-actis', 'edenorte', 'pacto-electrico', 'marranzini'],
+  intrant: ['morrison', 'intrant', 'digesett', 'milton morrison'],
+  presidencia: ['abinader', 'prm', 'luis abinader']
+};
+
+function getClientFilterTerms(mode) {
+  if (!mode) return [];
+  const tags = document.querySelectorAll(`.filter-tag[data-client="${mode}"]`);
+  if (tags.length) {
+    return Array.from(tags).map(tag => tag.dataset.filter).filter(Boolean);
+  }
+  return CLIENT_FILTER_TERMS_FALLBACK[mode] || [];
+}
+
+function getClientTermEntries(mode) {
+  const tags = document.querySelectorAll(`.filter-tag[data-client="${mode}"]`);
+  if (tags.length) {
+    return Array.from(tags).map(tag => ({
+      filter: tag.dataset.filter,
+      label: tag.textContent.trim()
+    }));
+  }
+  return (CLIENT_FILTER_TERMS_FALLBACK[mode] || []).map(filter => ({
+    filter,
+    label: filter
+  }));
+}
+
+function getCardSearchText(card) {
+  return [
+    card.dataset.termino,
+    card.dataset.ejecutivo,
+    card.dataset.contexto,
+    card.dataset.transcripcion,
+    card.dataset.nombrearchivo,
+    card.dataset.nombremedio
+  ].join(' ').toLowerCase();
+}
+
+function cardMatchesAnyClientTerm(card, mode) {
+  const terms = getClientFilterTerms(mode);
+  if (!terms.length) return true;
+  const haystack = getCardSearchText(card);
+  return terms.some(term => haystack.includes(String(term).toLowerCase()));
+}
+
+function getClientScopedCards() {
+  if (FIXED_CLIENT_MODE) {
+    return allCards.filter(card => cardMatchesAnyClientTerm(card, FIXED_CLIENT_MODE));
+  }
+  return allCards;
+}
 
 function clearChannelFilter() {
   currentChannelFilter = null;
@@ -1308,21 +1395,39 @@ function clearAllFilters() {
     tag.classList.toggle('active', tag.dataset.mediaType === 'all');
   });
 
-  currentClientMode = 'edesur';
-  const filterTagsEl = document.getElementById('filterTags');
-  if (filterTagsEl) {
-    filterTagsEl.dataset.clientMode = 'edesur';
+  const defaultMode = getDefaultClientMode();
+  if (!FIXED_CLIENT_MODE) {
+    currentClientMode = defaultMode;
+    const filterTagsEl = document.getElementById('filterTags');
+    if (filterTagsEl) {
+      filterTagsEl.dataset.clientMode = defaultMode;
+    }
+    document.querySelectorAll('.client-mode-tag').forEach(tag => {
+      tag.classList.toggle('active', tag.dataset.client === defaultMode);
+    });
+    filterCards(CLIENT_DEFAULT_FILTERS[defaultMode], { silent: true });
+  } else {
+    clearTermFilter({ silent: true });
   }
-  document.querySelectorAll('.client-mode-tag').forEach(tag => {
-    tag.classList.toggle('active', tag.dataset.client === 'edesur');
-  });
 
-  filterCards(CLIENT_DEFAULT_FILTERS.edesur, { silent: true });
   showToast('Filtros restablecidos');
+}
+
+function clearTermFilter(options = {}) {
+  currentFilter = null;
+  document.querySelectorAll('.filter-tag').forEach(tag => {
+    tag.classList.remove('active');
+  });
+  const visibleCount = applyAllFilters();
+  if (!options.silent) {
+    showToast(`Mostrando todos los contenidos (${visibleCount})`);
+  }
+  return visibleCount;
 }
 
 function setClientMode(mode, options = {}) {
   if (!VALID_CLIENT_MODES.includes(mode)) return;
+  if (FIXED_CLIENT_MODE && mode !== FIXED_CLIENT_MODE) return;
 
   const switched = currentClientMode !== mode;
   currentClientMode = mode;
@@ -1336,6 +1441,21 @@ function setClientMode(mode, options = {}) {
     tag.classList.toggle('active', tag.dataset.client === mode);
   });
 
+  if (FIXED_CLIENT_MODE) {
+    if (switched) {
+      clearTermFilter({ silent: options.silent || !switched });
+    } else if (currentFilter) {
+      filterCards(currentFilter, { silent: true });
+    } else {
+      clearTermFilter({ silent: true });
+    }
+    if (!options.silent && switched) {
+      showToast(`Modo ${CLIENT_MODE_LABELS[mode]} activo`);
+    }
+    if (typeof refreshAnalytics === 'function') refreshAnalytics();
+    return;
+  }
+
   const defaultFilter = CLIENT_DEFAULT_FILTERS[mode];
   const nextFilter = switched ? defaultFilter : (currentFilter || defaultFilter);
   filterCards(nextFilter, { silent: options.silent || !switched });
@@ -1343,6 +1463,7 @@ function setClientMode(mode, options = {}) {
   if (!options.silent && switched) {
     showToast(`Modo ${CLIENT_MODE_LABELS[mode]} activo`);
   }
+  if (typeof refreshAnalytics === 'function') refreshAnalytics();
 }
 
 function filterCards(filter, options = {}) {
@@ -1574,8 +1695,10 @@ document.addEventListener('DOMContentLoaded', () => {
   
   console.log('🏷️ Total de tags de filtro configurados:', document.querySelectorAll('.filter-tag').length);
 
+  initFixedClientPage();
+  if (typeof initAppTabs === 'function') initAppTabs();
   enableRealtime();
-  setClientMode('edesur', { silent: true });
+  setClientMode(getDefaultClientMode(), { silent: true });
   loadFirstPage();
 });
 
